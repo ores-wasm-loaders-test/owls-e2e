@@ -1,0 +1,24 @@
+[package]
+org = "ores-wasm-loaders-test"
+name = "owls-e2e"
+version = "0.1.1"
+description = "External-consumer conformance suite for the OWLS release contract"
+license = "MIT"
+[package.repository]
+vcs = "git"
+url = "https://github.com/ores-wasm-loaders-test/owls-e2e"
+[dependencies]
+"ores-wasm-loaders/owls-interfaces" = "=0.1.1"
+"ores-wasm-loaders/owls-web-loader" = "=0.1.1"
+"ores-wasm-loaders/owls-runtime" = "=0.1.1"
+"ores-wasm-loaders/owls-flutter" = "=0.1.1"
+[targets.repository]
+dir = "."
+[install]
+adapter = "node"
+# zed v0.3.0 accepts only `test` here. Everything else lives in zed-env.toml.
+[scripts]
+test = "node --test node/consumer.test.mjs"
+[publish]
+include_readme = true
+exclude = [".ores/**", ".zed/**", ".zed-pack/**", ".registry/**", "zed_modules/**", "node_modules/**", "target/**", ".dart_tool/**"]

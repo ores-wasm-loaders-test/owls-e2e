@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OWLS external-consumer browser fixture</title>
+<!-- The fixture server sends a CSP with script-src 'self' 'wasm-unsafe-eval'.
+     That forbids inline script, so every line of harness code is an external
+     module. If this page ever runs with an inline <script>, the CSP regressed. -->
+</head>
+<body>
+<h1>OWLS external-consumer browser fixture</h1>
+<p id="status">running…</p>
+<pre id="log"></pre>
+<div id="view-a" style="width:200px;height:120px"></div>
+<div id="view-b" style="width:200px;height:120px"></div>
+<script type="module" src="./harness.js"></script>
+</body>
+</html>

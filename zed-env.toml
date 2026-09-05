@@ -1,0 +1,14 @@
+schema = 2
+[tasks.deps]
+run = [
+  "zed install --frozen --install-mode copy --adapter node",
+]
+[tasks.check]
+run = [
+  "zed validate --require-lock",
+  "python3 tools/validate_corpus.py",
+  "node --test node/consumer.test.mjs",
+  "cargo test --manifest-path rust/Cargo.toml --locked",
+  "flutter analyze dart",
+  "flutter test dart",
+]

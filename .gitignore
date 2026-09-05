@@ -1,0 +1,12 @@
+# Installed packages — restored by `zed install --frozen --install-mode copy`
+zed_modules/
+.registry/
+
+# Ecosystem caches
+node_modules/
+target/
+.dart_tool/
+build/
+
+# Local scratch
+.ores/

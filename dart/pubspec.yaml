@@ -1,0 +1,26 @@
+name: owls_e2e_consumer
+version: 0.1.1
+description: External-consumer conformance tests for owls_flutter, driven by the shared release corpus.
+publish_to: none
+
+environment:
+  sdk: '>=3.6.0 <4.0.0'
+
+# Paths follow owls-docs/docs/installation.md, adjusted for a nested package:
+# zed_modules/ is installed at the repository root and this package lives in dart/.
+dependencies:
+  flutter:
+    sdk: flutter
+  owls_flutter:
+    path: ../zed_modules/ores-wasm-loaders/owls-flutter
+  owls_interfaces:
+    path: ../zed_modules/ores-wasm-loaders/owls-interfaces/dart
+  crypto: 3.0.7
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+dependency_overrides:
+  owls_interfaces:
+    path: ../zed_modules/ores-wasm-loaders/owls-interfaces/dart
