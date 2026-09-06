@@ -1,0 +1,6 @@
+name = "owls_e2e_gleam"
+version = "0.1.0"
+target = "javascript"
+
+description = "Gleam projection smoke test for the OWLS release contract"
+licences = ["MIT"]
