@@ -14,8 +14,10 @@ path = "src/render.rs"
 required-features = ["ssr"]
 
 [dependencies]
-leptos = { version = "=0.8.2", features = ["islands"] }
-hydration_context = "0.3.0"
+# Pin the WHOLE workspace: mixing the old core with newer caret-resolved macros
+# failed the real build. Both SSR and hydration now use one framework commit.
+leptos = { git = "https://github.com/leptos-rs/leptos", rev = "2ee4444bb44310e73e908b98ccd2b353f534da01", features = ["islands"] }
+hydration_context = { git = "https://github.com/leptos-rs/leptos", rev = "2ee4444bb44310e73e908b98ccd2b353f534da01" }
 wasm-bindgen = "0.2.100"
 
 [features]
