@@ -1,0 +1,32 @@
+name: pilot-controls
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  controls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test the independent experiment controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          { git rev-parse HEAD; node --version; printf 'scope=pilot control logic only; no app or browser certification\n'; } > evidence/versions.txt
+          node --test --test-reporter=tap pilot/*.test.mjs | tee evidence/pilot-controls.tap
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pilot-controls-${{ github.sha }}
+          path: evidence/
+          if-no-files-found: error
+          retention-days: 7
