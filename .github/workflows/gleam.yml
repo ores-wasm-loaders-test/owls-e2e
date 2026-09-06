@@ -1,0 +1,33 @@
+name: gleam
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gleam:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: gleam
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: erlef/setup-beam@v1.24.1
+        with:
+          otp-version: false
+          gleam-version: "1.18.0"
+          version-type: strict
+      - name: Check formatting and types
+        run: |
+          gleam format --check src
+          gleam check
+      - name: Execute the contract and preparation smoke module
+        run: gleam run -m smoke
