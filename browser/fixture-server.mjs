@@ -18,9 +18,8 @@
 import {createHash} from "node:crypto";
 import {createServer as createHttpServer} from "node:http";
 import {createServer as createHttpsServer} from "node:https";
-import {readFile, readdir, stat} from "node:fs/promises";
-import {existsSync} from "node:fs";
-import {extname, join, relative, resolve, sep} from "node:path";
+import {readFile, readdir, realpath, stat} from "node:fs/promises";
+import {extname, isAbsolute, join, relative, resolve, sep} from "node:path";
 import {fileURLToPath} from "node:url";
 
 const PAGES = fileURLToPath(new URL("./pages/", import.meta.url));
@@ -65,6 +64,12 @@ function contentType(path) {
   return MIME.get(extname(path).toLowerCase()) ?? "application/octet-stream";
 }
 
+// Segment-aware containment also permits ordinary names such as "..asset.wasm".
+function isWithin(root, path) {
+  const rel = relative(root, path);
+  return rel !== "" && rel !== ".." && !rel.startsWith(`..${sep}`) && !isAbsolute(rel);
+}
+
 /** Resolve `urlPath` under `root`, refusing anything that escapes it. */
 function safeJoin(root, urlPath) {
   let decoded;
@@ -73,8 +78,7 @@ function safeJoin(root, urlPath) {
   if (!decoded || decoded.includes("\0")) return null;
   const base = resolve(root);
   const target = resolve(base, decoded);
-  const rel = relative(base, target);
-  if (!rel || rel.startsWith("..") || rel.startsWith(sep)) return null;
+  if (!isWithin(base, target)) return null;
   return target;
 }
 
@@ -155,9 +159,27 @@ export async function startFixtureServer(options = {}) {
 
     const path = safeJoin(root, rest.join("/") || "index.html");
     if (!path) { send(403, "path escapes the fixture root"); return; }
-    if (!existsSync(path) || !(await stat(path)).isFile()) { send(404, `not found: ${url.pathname}`); return; }
+    // Lexical containment is insufficient: stat/readFile follow file and directory
+    // symlinks. Compare canonical paths, then read the canonical target rather
+    // than following the originally requested symlink again. Explicit root aliases
+    // and links that stay inside that root remain supported.
+    // Build trees must stay fixed during a run; this is not a filesystem sandbox
+    // against a concurrent writer replacing directories between filesystem calls.
+    let resolvedPath;
+    try {
+      const [resolvedRoot, target] = await Promise.all([realpath(root), realpath(path)]);
+      if (!isWithin(resolvedRoot, target)) { send(403, "path escapes the fixture root"); return; }
+      resolvedPath = target;
+      if (!(await stat(resolvedPath)).isFile()) { send(404, `not found: ${url.pathname}`); return; }
+    } catch (error) {
+      if (["ENOENT", "ENOTDIR", "ELOOP"].includes(error.code)) {
+        send(404, `not found: ${url.pathname}`);
+        return;
+      }
+      throw error;
+    }
 
-    const body = await readFile(path);
+    const body = await readFile(resolvedPath);
     const etag = `"${createHash("sha256").update(body).digest("hex").slice(0, 32)}"`;
     if (req.headers["if-none-match"] === etag) { res.writeHead(304); res.end(); return; }
     res.writeHead(200, {
