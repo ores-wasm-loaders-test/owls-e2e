@@ -10,194 +10,182 @@ permissions:
   contents: read
 
 env:
-  # Pinned in owls-docs/docs/installation.md. The checksum is verified before the
-  # binary is ever executed.
-  ZED_CLI_URL: https://github.com/zed-pkg/zed-cli/releases/download/v0.3.0/zed-x86_64-unknown-linux-musl.tar.gz
-  ZED_CLI_SHA256: e380240c96242ab3b29e0e9d14c95ba946d086f20f0732e34d0e5cf47513efc7
-  OWLS_DOCS_REF: v0.1.1
+  OWLS_INTERFACES_REF: b0e687c88b652d25964c041e2fdd0222f512fddd
+  OWLS_WEB_LOADER_REF: e02e6b7867cd07b8640f86b017b332adadc4124a
+  OWLS_RUNTIME_REF: 56de8a34998101b5c379d35b43122c67ae5c78f2
+  OWLS_FLUTTER_REF: 962aef4350b3f9a40901f12acfefde6ab0473353
+  TSJSV_REF: 3822508a667d36f9e094f84aa57b1b2944230852
 
 jobs:
-  # ---------------------------------------------------------------- install --
-  # Produces zed_modules/ exactly the way a consuming organization does, once,
-  # and hands it to every language job. If this fails, nothing downstream runs:
-  # there is no fallback to sibling source checkouts.
-  install:
+  materialize:
+    name: exact source provenance
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - name: Check out external consumer suite
+        uses: actions/checkout@v4
+      - name: Check out owls-interfaces at the declared commit
+        uses: actions/checkout@v4
         with:
-          node-version: "22"
-
-      - name: Install the pinned Zed CLI (verify checksum before executing)
+          repository: ores-wasm-loaders/owls-interfaces
+          ref: ${{ env.OWLS_INTERFACES_REF }}
+          path: zed_modules/ores-wasm-loaders/owls-interfaces
+      - name: Check out owls-web-loader at the declared commit
+        uses: actions/checkout@v4
+        with:
+          repository: ores-wasm-loaders/owls-web-loader
+          ref: ${{ env.OWLS_WEB_LOADER_REF }}
+          path: zed_modules/ores-wasm-loaders/owls-web-loader
+      - name: Check out owls-runtime.rs at the declared commit
+        uses: actions/checkout@v4
+        with:
+          repository: ores-wasm-loaders/owls-runtime.rs
+          ref: ${{ env.OWLS_RUNTIME_REF }}
+          path: zed_modules/ores-wasm-loaders/owls-runtime
+      - name: Check out owls-flutter at the declared commit
+        uses: actions/checkout@v4
+        with:
+          repository: ores-wasm-loaders/owls-flutter
+          ref: ${{ env.OWLS_FLUTTER_REF }}
+          path: zed_modules/ores-wasm-loaders/owls-flutter
+      - name: Assert the exact external layout and record provenance
         run: |
           set -euo pipefail
-          curl --fail --location --retry 3 --output zed-cli.tar.gz "$ZED_CLI_URL"
-          echo "$ZED_CLI_SHA256  zed-cli.tar.gz" | sha256sum --check --strict -
-          mkdir -p "$RUNNER_TEMP/zed"
-          tar -xzf zed-cli.tar.gz -C "$RUNNER_TEMP/zed"
-          ZED_BIN="$(find "$RUNNER_TEMP/zed" -type f -name zed -perm -u+x | head -n 1)"
-          test -n "$ZED_BIN" || { echo "::error::no zed binary in the verified archive"; exit 1; }
-          echo "$(dirname "$ZED_BIN")" >> "$GITHUB_PATH"
-          rm -f zed-cli.tar.gz
-
-      - name: Report the Zed CLI version
-        run: zed --version
-
-      - name: Materialize the checksum-pinned registry snapshot
-        run: |
-          set -euo pipefail
-          git clone --depth 1 --branch "$OWLS_DOCS_REF" \
-            https://github.com/ores-wasm-loaders/owls-docs.git "$RUNNER_TEMP/owls-docs"
-          cd "$RUNNER_TEMP/owls-docs"
-          bash scripts/registry.sh     # verifies its own SHA-256 before extracting
-          echo "ZED_PKG_REGISTRY=file://$PWD/.registry/registry" >> "$GITHUB_ENV"
-
-      - name: npm ci
-        run: |
-          set -euo pipefail
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            echo "note: this repository has no npm dependencies; the Node suite runs on node --test alone."
-          fi
-
-      - name: zed install
-        run: zed install --frozen --install-mode copy --adapter node
-
-      - name: Assert the installed packages are actually present
-        run: |
-          set -euo pipefail
-          missing=0
           for path in \
+            zed_modules/ores-wasm-loaders/owls-interfaces/contracts/main.tsp \
             zed_modules/ores-wasm-loaders/owls-interfaces/schemas/release.schema.json \
-            zed_modules/ores-wasm-loaders/owls-web-loader/dist/index.js \
+            zed_modules/ores-wasm-loaders/owls-web-loader/index.mjs \
             zed_modules/ores-wasm-loaders/owls-runtime/Cargo.toml \
-            zed_modules/ores-wasm-loaders/owls-flutter/pubspec.yaml ; do
-            if [ ! -e "$path" ]; then echo "::error::missing installed file: $path"; missing=1; fi
+            zed_modules/ores-wasm-loaders/owls-flutter/pubspec.yaml; do
+            test -e "$path" || { echo "::error::missing source input: $path"; exit 1; }
           done
-          exit "$missing"
-
+          find zed_modules -type d -name .git -prune -exec rm -rf {} +
+          cat > zed_modules/owls-source-lock.json <<JSON
+          {
+            "schema": "ores-wasm-loaders-test.source-lock/v1",
+            "interfaces": "$OWLS_INTERFACES_REF",
+            "webLoader": "$OWLS_WEB_LOADER_REF",
+            "runtime": "$OWLS_RUNTIME_REF",
+            "flutter": "$OWLS_FLUTTER_REF"
+          }
+          JSON
       - uses: actions/upload-artifact@v4
         with:
           name: zed_modules
           path: zed_modules
-          retention-days: 1
+          retention-days: 3
           include-hidden-files: true
 
-  # ----------------------------------------------------------------- corpus --
   corpus:
-    needs: install
+    needs: materialize
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
-        with: {name: zed_modules, path: zed_modules}
+        with: { name: zed_modules, path: zed_modules }
       - uses: actions/setup-python@v5
-        with: {python-version: "3.11"}
+        with: { python-version: "3.11" }
       - run: pip install "jsonschema==4.26.0"
-      - name: Validate the corpus against the installed release schema
+      - name: Validate all corpus expectations against independent JSON Schema A
         run: python3 tools/validate_corpus.py
 
-  # ------------------------------------------------------------------- node --
-  node:
-    needs: install
+  parity:
+    needs: materialize
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
-        with: {name: zed_modules, path: zed_modules}
+        with: { name: zed_modules, path: zed_modules }
+      - name: Check out the parity linter at an exact commit
+        uses: actions/checkout@v4
+        with:
+          repository: ORESoftware/typespec-json-schema-validator
+          ref: ${{ env.TSJSV_REF }}
+          path: .tools/typespec-json-schema-validator
       - uses: actions/setup-node@v4
-        with: {node-version: "22"}
-      - name: Refuse to let the suite skip itself
+        with: { node-version: "22" }
+      - run: npm ci
+        working-directory: .tools/typespec-json-schema-validator
+      - name: Generate JSON Schema B from TypeSpec and compare it with independent JSON Schema A
         run: |
-          set -euo pipefail
-          test -f zed_modules/ores-wasm-loaders/owls-web-loader/dist/index.js || {
-            echo "::error::owls-web-loader is not installed; the Node suite would skip and pass silently"
-            exit 1
-          }
-      - run: node --test node/consumer.test.mjs
+          node .tools/typespec-json-schema-validator/bin/typespec-json-schema-validator.mjs check \
+            --typespec=zed_modules/ores-wasm-loaders/owls-interfaces/contracts/main.tsp \
+            --schema=zed_modules/ores-wasm-loaders/owls-interfaces/schemas/release.schema.json \
+            --report=artifacts/typespec-json-schema-parity.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: typespec-json-schema-parity
+          path: artifacts/typespec-json-schema-parity.json
+          if-no-files-found: warn
 
-  # ------------------------------------------------------------------- rust --
+  node:
+    needs: materialize
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: zed_modules, path: zed_modules }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - name: Run the current API against all 54 corpus cases and lifecycle scenarios
+        run: node --test node/current-api.test.mjs
+
   rust:
-    needs: install
+    needs: materialize
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
-        with: {name: zed_modules, path: zed_modules}
-      - name: Install a Rust toolchain (owls-runtime is edition 2024)
-        run: rustup toolchain install 1.85 --profile minimal && rustup default 1.85
-      - name: cargo test --locked
-        run: |
-          set -euo pipefail
-          if [ ! -f rust/Cargo.lock ]; then
-            echo "::warning title=Rust suite skipped::rust/Cargo.lock is absent, so cargo test --locked cannot run. Generate it once on a machine with crates.io access (cd rust && cargo generate-lockfile) and commit it. THIS IS A SKIP, NOT A PASS."
-            {
-              echo "### Rust suite SKIPPED"
-              echo
-              echo "\`rust/Cargo.lock\` is absent. \`cargo test --locked\` did not run, so **nothing about the Rust host was checked**."
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-          cargo test --manifest-path rust/Cargo.toml --locked
+        with: { name: zed_modules, path: zed_modules }
+      - name: Install the minimum edition-2024 Rust toolchain
+        run: rustup toolchain install 1.85.0 --profile minimal && rustup default 1.85.0
+      - name: Compile and run the Rust external consumer
+        run: cargo test --manifest-path rust/Cargo.toml
 
-  # ------------------------------------------------------------------- dart --
   dart:
-    needs: install
+    needs: materialize
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
-        with: {name: zed_modules, path: zed_modules}
+        with: { name: zed_modules, path: zed_modules }
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-      - name: flutter analyze and test
+      - name: Resolve, analyze, and test the Dart/Flutter external consumer
         working-directory: dart
         run: |
-          set -euo pipefail
-          if [ ! -f pubspec.lock ]; then
-            echo "::warning title=Dart suite skipped::dart/pubspec.lock is absent, so --enforce-lockfile cannot run. Generate it once on a machine with a Flutter SDK (cd dart && flutter pub get) and commit it. THIS IS A SKIP, NOT A PASS."
-            {
-              echo "### Dart suite SKIPPED"
-              echo
-              echo "\`dart/pubspec.lock\` is absent. \`flutter analyze\`/\`flutter test\` did not run, so **nothing about the Dart host was checked**."
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-          flutter pub get --enforce-lockfile
+          flutter pub get
           flutter analyze
           flutter test
 
-  # ---------------------------------------------------------------- browser --
-  # Runs only against real framework build output. With no OWLS_BINDGEN_DIR or
-  # OWLS_FLUTTER_DIR it prints a SKIP banner and says nothing was checked.
-  # A machine that is supposed to have those inputs should set
-  # OWLS_BROWSER_REQUIRE=1, which turns every skip into a failure.
-  browser:
-    needs: install
+  go:
+    needs: materialize
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
-        with: {name: zed_modules, path: zed_modules}
+        with: { name: zed_modules, path: zed_modules }
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23.x"
+          cache-dependency-path: go/go.mod
+      - name: Run the dependency-free Go contract and verified-preparation consumer
+        working-directory: go
+        run: go test ./...
+
+  browser:
+    needs: materialize
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: zed_modules, path: zed_modules }
       - uses: actions/setup-node@v4
-        with: {node-version: "22"}
-      - name: Chromium fixture harness
-        env:
-          OWLS_BINDGEN_DIR: ${{ vars.OWLS_BINDGEN_DIR }}
-          OWLS_FLUTTER_DIR: ${{ vars.OWLS_FLUTTER_DIR }}
-          OWLS_BROWSER_REQUIRE: ${{ vars.OWLS_BROWSER_REQUIRE }}
+        with: { node-version: "22" }
+      - name: Install pinned Playwright and Chromium
         run: |
-          set -euo pipefail
-          node browser/run.mjs | tee harness.log
-          if grep -q "SKIP: browser fixture harness did not run" harness.log; then
-            echo "::warning title=Browser harness skipped::No framework build output was supplied, so no browser behaviour was checked. THIS IS A SKIP, NOT A PASS. See browser/README.md."
-            {
-              echo "### Browser harness SKIPPED"
-              echo
-              echo "No \`OWLS_BINDGEN_DIR\`/\`OWLS_FLUTTER_DIR\` was supplied, so **nothing about browser behaviour was checked**."
-            } >> "$GITHUB_STEP_SUMMARY"
-          fi
+          npm install --no-save --ignore-scripts playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Run real browser hover-prefetch and activation smoke test
+        run: node browser/current-api-smoke.mjs
