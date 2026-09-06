@@ -1,0 +1,40 @@
+name: import-verified-pilot-lock
+# This write-capable job runs only on our explicitly named feature branch, never
+# pull_request_target, fork input, arbitrary artifact IDs or arbitrary paths.
+on:
+  push:
+    branches: [feat/wt-03-pilot-controls-20260906]
+    paths: [.github/workflows/import-pilot-lock.yml]
+permissions:
+  contents: write
+  actions: read
+jobs:
+  reviewed-lock:
+    if: github.repository == 'ores-wasm-loaders-test/owls-e2e'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: feat/wt-03-pilot-controls-20260906
+      - name: Import only the reviewed successful build's Cargo.lock
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test ! -e pilot/real/rust/Cargo.lock
+          # Fail if the source recipe no longer matches the successful pinned build.
+          gh api 'repos/ores-wasm-loaders-test/owls-e2e/contents/pilot/real/rust/Cargo.toml?ref=f5c50c17e67907aa3fd4dce958b0d51650297c46' --jq .content | base64 --decode > "$RUNNER_TEMP/recipe.toml"
+          cmp pilot/real/rust/Cargo.toml "$RUNNER_TEMP/recipe.toml"
+          gh api repos/ores-wasm-loaders-test/owls-e2e/actions/artifacts/9996219208/zip > "$RUNNER_TEMP/reviewed-lock.zip"
+          printf '%s  %s\n' 2058a57bcbb5c9c48edf7ca954691f6c42649693a6ec816862ae6a86730e5147 "$RUNNER_TEMP/reviewed-lock.zip" | sha256sum --check --strict
+          # Select a single known member; never unpack or execute the artifact tree.
+          unzip -p "$RUNNER_TEMP/reviewed-lock.zip" Cargo.lock > pilot/real/rust/Cargo.lock
+          test "$(wc -c < pilot/real/rust/Cargo.lock)" -lt 100000
+          grep -q '2ee4444bb44310e73e908b98ccd2b353f534da01' pilot/real/rust/Cargo.lock
+          git add -- pilot/real/rust/Cargo.lock
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'build(WL-13): commit verified successful Leptos native/Wasm Cargo.lock' -m 'Source: real-pilot-rust artifact 9996219208, SHA-256 2058a57bcbb5c9c48edf7ca954691f6c42649693a6ec816862ae6a86730e5147. Exact source recipe verified; only Cargo.lock imported. No generated credentials or binaries.'
+          # Ordinary fast-forward only. Concurrent branch changes reject the push.
+          git push origin HEAD:refs/heads/feat/wt-03-pilot-controls-20260906
