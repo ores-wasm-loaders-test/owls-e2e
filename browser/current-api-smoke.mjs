@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const wasm = Buffer.from([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
+const assetUrl = 'https://assets.ores-wasm-loaders.test/fixture.wasm';
 let wasmRequests = 0;
 let schemaRequests = 0;
 
@@ -20,6 +21,7 @@ const html = `<!doctype html>
   </main>
   <script type="module" nonce="owls-e2e">
     const interfacesUrl = '/zed_modules/ores-wasm-loaders/owls-interfaces/index.mjs';
+    const assetUrl = ${JSON.stringify('https://assets.ores-wasm-loaders.test/fixture.wasm')};
     globalThis.__OWLS_INTERFACES_URL__ = interfacesUrl;
     const {
       Coordinator,
@@ -35,7 +37,7 @@ const html = `<!doctype html>
       .map((value) => value.toString(16).padStart(2, '0'))
       .join('');
     const events = [];
-    const coordinator = new Coordinator(browserPolicy([location.origin], {
+    const coordinator = new Coordinator(browserPolicy([new URL(assetUrl).origin], {
       maxPrepareBytes: 1024,
       maxAssetBytes: 1024,
       concurrency: 1,
@@ -54,7 +56,7 @@ const html = `<!doctype html>
       entrypoint: 'engine',
       assets: [{
         id: 'engine',
-        url: location.origin + '/fixture.wasm',
+        url: assetUrl,
         kind: 'wasm',
         bytes: bytes.length,
         sha256: digest,
@@ -94,19 +96,12 @@ const server = createServer(async (request, response) => {
   try {
     response.setHeader(
       'Content-Security-Policy',
-      "default-src 'self'; script-src 'self' 'nonce-owls-e2e' 'wasm-unsafe-eval'; connect-src 'self'; object-src 'none'; base-uri 'none'",
+      "default-src 'self'; script-src 'self' 'nonce-owls-e2e' 'wasm-unsafe-eval'; connect-src 'self' https://assets.ores-wasm-loaders.test; object-src 'none'; base-uri 'none'",
     );
     response.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
     if (request.url === '/') {
       response.setHeader('Content-Type', 'text/html; charset=utf-8');
       response.end(html);
-      return;
-    }
-    if (request.url === '/fixture.wasm') {
-      wasmRequests += 1;
-      response.setHeader('Content-Type', 'application/wasm');
-      response.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-      response.end(wasm);
       return;
     }
     if (request.url === '/zed_modules/ores-wasm-loaders/owls-interfaces/schemas/release.schema.json') {
@@ -133,12 +128,27 @@ let browser;
 try {
   browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
+  await page.route(assetUrl, async (route) => {
+    wasmRequests += 1;
+    await route.fulfill({
+      status: 200,
+      body: wasm,
+      headers: {
+        'access-control-allow-origin': '*',
+        'cache-control': 'public, max-age=31536000, immutable',
+        'content-type': 'application/wasm',
+      },
+    });
+  });
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
   await page.goto(origin, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => globalThis.__owlsReady === true);
   await page.hover('#open');
-  await page.waitForFunction(() => performance.getEntriesByName(`${location.origin}/fixture.wasm`).length === 1);
+  await page.waitForFunction(
+    (url) => performance.getEntriesByName(url).length === 1,
+    assetUrl,
+  );
   await page.click('#open');
   await page.waitForFunction(() => globalThis.__owlsResult?.status === 'interactive');
   const result = await page.evaluate(() => globalThis.__owlsResult);
