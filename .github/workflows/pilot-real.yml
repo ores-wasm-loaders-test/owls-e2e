@@ -2,12 +2,12 @@ name: real-framework-pilot
 on:
   pull_request:
   push:
-    branches: [main, feat/wt-03-pilot-controls-20260906]
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: real-pilot-${{ github.head_ref || github.ref_name }}
+  group: real-pilot-v2-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
   packages:
@@ -174,7 +174,6 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund --prefix pilot/real
           (cd pilot/real && npx playwright install --with-deps chromium firefox webkit)
           node pilot/real/browser.mjs
-          # Standard package-name imports use only the clean consumer's installed packages.
           (cd pilot/real/consumer && node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
           const contract = await import('@ores-wasm-loaders/owls-interfaces');
