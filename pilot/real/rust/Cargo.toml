@@ -1,0 +1,31 @@
+[package]
+name = "owls-pilot-island"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "render"
+path = "src/render.rs"
+required-features = ["ssr"]
+
+[dependencies]
+# Pin the WHOLE workspace: mixing the old core with newer caret-resolved macros
+# failed the real build. Both SSR and hydration now use one framework commit.
+leptos = { git = "https://github.com/leptos-rs/leptos", rev = "2ee4444bb44310e73e908b98ccd2b353f534da01", features = ["islands"] }
+hydration_context = { git = "https://github.com/leptos-rs/leptos", rev = "2ee4444bb44310e73e908b98ccd2b353f534da01" }
+wasm-bindgen = "0.2.100"
+
+[features]
+default = []
+hydrate = ["leptos/hydrate"]
+ssr = ["leptos/ssr"]
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
