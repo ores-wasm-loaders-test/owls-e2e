@@ -1,0 +1,184 @@
+name: real-framework-pilot
+on:
+  pull_request:
+  push:
+    branches: [main, feat/wt-03-pilot-controls-20260906]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: real-pilot-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+jobs:
+  packages:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: ores-wasm-loaders/owls-web-loader
+          ref: 13c5b98568f1a179436246690e3b2a08fa6ba030
+          path: package-src/owls-web-loader
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: ores-wasm-loaders/owls-interfaces
+          ref: d036d73c35ced08f028c402407c667c339df79e6
+          path: package-src/owls-interfaces
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Build and test manifest tool with pinned Rust
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p package-artifacts
+          rustup toolchain install 1.94.0 --profile minimal
+          cargo +1.94.0 test --manifest-path package-src/owls-web-loader/tools/manifest/Cargo.toml 2>&1 | tee package-artifacts/manifest-tests.log
+          cargo +1.94.0 build --release --locked --manifest-path package-src/owls-web-loader/tools/manifest/Cargo.toml
+          cp package-src/owls-web-loader/tools/manifest/target/release/owls-build-manifest package-artifacts/
+          cp package-src/owls-web-loader/tools/manifest/Cargo.lock package-artifacts/manifest.Cargo.lock
+      - name: Pack actual source revisions without executing lifecycle scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$GITHUB_WORKSPACE/package-artifacts"
+          (cd package-src/owls-web-loader && node --test test/*.test.mjs) > "$OUT/loader-tests.tap"
+          (cd package-src/owls-interfaces && node --test test/*.test.mjs) > "$OUT/interface-tests.tap"
+          (cd package-src/owls-web-loader && npm pack --ignore-scripts --json --pack-destination "$OUT") > "$OUT/loader-pack.json"
+          (cd package-src/owls-interfaces && npm pack --ignore-scripts --json --pack-destination "$OUT") > "$OUT/interfaces-pack.json"
+          OUT="$OUT" node --input-type=module <<'NODE'
+          import {readFileSync, copyFileSync} from 'node:fs';
+          import {join} from 'node:path';
+          for (const name of ['loader','interfaces']) {
+            const packed=JSON.parse(readFileSync(join(process.env.OUT,`${name}-pack.json`)))[0];
+            for (const file of packed.files) {
+              if (/(^|\/)(\.git|\.env|credentials\.env)(\/|$)/.test(file.path) || file.path.includes('env/dec/')) throw new Error('Unsafe package member');
+            }
+            copyFileSync(join(process.env.OUT,packed.filename),join(process.env.OUT,`${name}.tgz`));
+          }
+          NODE
+          { git rev-parse HEAD; git -C package-src/owls-web-loader rev-parse HEAD; git -C package-src/owls-interfaces rev-parse HEAD; node --version; rustc +1.94.0 --version; } > "$OUT/versions.txt"
+          sha256sum "$OUT/loader.tgz" "$OUT/interfaces.tgz" > "$OUT/packages.sha256"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: real-pilot-packages
+          path: package-artifacts/
+          if-no-files-found: error
+          retention-days: 30
+
+  rust:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Compile matching native SSR and Wasm island
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p rust-artifacts
+          rustup toolchain install 1.94.0 --profile minimal --target wasm32-unknown-unknown
+          cargo +1.94.0 generate-lockfile --manifest-path pilot/real/rust/Cargo.toml
+          cp pilot/real/rust/Cargo.lock rust-artifacts/
+          cargo +1.94.0 build --locked --release --lib --target wasm32-unknown-unknown --features hydrate --manifest-path pilot/real/rust/Cargo.toml
+          VERSION="$(cargo +1.94.0 metadata --locked --format-version=1 --manifest-path pilot/real/rust/Cargo.toml | jq -r '.packages[] | select(.name=="wasm-bindgen") | .version')"
+          test -n "$VERSION"
+          mkdir -p "$RUNNER_TEMP/bindgen"
+          curl --fail --location --silent --show-error --retry 3 "https://github.com/wasm-bindgen/wasm-bindgen/releases/download/$VERSION/wasm-bindgen-$VERSION-x86_64-unknown-linux-musl.tar.gz" -o "$RUNNER_TEMP/bindgen.tar.gz"
+          tar -xzf "$RUNNER_TEMP/bindgen.tar.gz" --strip-components=1 -C "$RUNNER_TEMP/bindgen"
+          "$RUNNER_TEMP/bindgen/wasm-bindgen" pilot/real/rust/target/wasm32-unknown-unknown/release/owls_pilot_island.wasm --target web --out-dir rust-artifacts --out-name app
+          cargo +1.94.0 run --locked --release --bin render --features ssr --manifest-path pilot/real/rust/Cargo.toml > rust-artifacts/island.html
+          { rustc +1.94.0 --version; "$RUNNER_TEMP/bindgen/wasm-bindgen" --version; git rev-parse HEAD; sha256sum "$RUNNER_TEMP/bindgen.tar.gz"; } > rust-artifacts/versions.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: real-pilot-rust
+          path: rust-artifacts/
+          if-no-files-found: error
+          retention-days: 30
+
+  flutter:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Check out the exact Flutter SDK
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: flutter/flutter
+          ref: 05db9689081f091050f01aed79f04dce0c750154
+          path: flutter-sdk
+          persist-credentials: false
+      - name: Build real loader-only Flutter Wasm application
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/flutter-sdk/bin:$PATH"
+          mkdir -p flutter-artifacts
+          flutter config --no-analytics
+          flutter --version > flutter-artifacts/versions.txt
+          (cd pilot/real/flutter && flutter pub get && flutter analyze && flutter build web --wasm --no-web-resources-cdn --pwa-strategy=none)
+          rsync -a --exclude='.*' --exclude='*.map' pilot/real/flutter/build/web/ flutter-artifacts/
+          cp pilot/real/flutter/pubspec.lock flutter-artifacts/pubspec.lock
+          git -C flutter-sdk rev-parse HEAD >> flutter-artifacts/versions.txt
+          test -f flutter-artifacts/main.dart.wasm
+          test -f flutter-artifacts/main.dart.js
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: real-pilot-flutter
+          path: flutter-artifacts/
+          if-no-files-found: error
+          retention-days: 30
+
+  browsers:
+    needs: [packages, rust, flutter]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: real-pilot-packages
+          path: pilot/real/inputs/packages
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: real-pilot-rust
+          path: pilot/real/inputs/rust
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: real-pilot-flutter
+          path: pilot/real/inputs/flutter
+      - name: Install pinned browser tooling and execute real interaction matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x pilot/real/inputs/packages/owls-build-manifest
+          npm install --ignore-scripts --no-audit --no-fund --prefix pilot/real
+          (cd pilot/real && npx playwright install --with-deps chromium firefox webkit)
+          node pilot/real/browser.mjs
+      - name: Preserve traces, actual manifests, observations and generated locks
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: real-pilot-browser-evidence
+          path: |
+            pilot/real/evidence/
+            pilot/real/package-lock.json
+            pilot/real/consumer/package-lock.json
+          if-no-files-found: error
+          retention-days: 30

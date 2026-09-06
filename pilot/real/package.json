@@ -1,0 +1,1 @@
+{"name":"owls-real-browser-pilot","private":true,"type":"module","scripts":{"test":"node browser.mjs"},"devDependencies":{"playwright":"1.55.0"}}

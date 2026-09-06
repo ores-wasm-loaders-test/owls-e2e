@@ -1,0 +1,9 @@
+node_modules/
+consumer/
+inputs/
+evidence/
+rust/target/
+flutter/.dart_tool/
+flutter/build/
+flutter/.flutter-plugins*
+*.pem
