@@ -10,3 +10,5 @@ build/
 
 # Local scratch
 .ores/
+tmp/
+temp/
