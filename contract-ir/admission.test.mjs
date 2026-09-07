@@ -41,6 +41,7 @@ test('an outside consumer admits the exact producer artifact', async () => {
   assert.equal(verification.status, 'passed');
   assert.equal(verification.admissible, true);
   assert.equal(verification.suppliedIrId, contractIr.irId);
+  assert.equal(verification.computedIrId, contractIr.irId);
   assert.equal(verification.expectedIrId, contractIr.irId);
   assert.equal(contractIr.admission.receipt.runId, report.runId);
   assert.equal(contractIr.admission.receipt.zeroUnexplainedFindings, true);
@@ -64,7 +65,9 @@ test('tampering with the Contract IR invalidates its self digest', async () => {
   const verification = await verify({ suppliedIr: tampered });
   assert.equal(verification.status, 'failed');
   assert.equal(verification.admissible, false);
-  assert.equal(verification.matchesSelf, false);
+  assert.equal(verification.suppliedIrId, contractIr.irId);
+  assert.notEqual(verification.computedIrId, verification.suppliedIrId);
+  assert.equal(verification.expectedIrId, contractIr.irId);
 });
 
 test('changing the parity receipt invalidates the receipt-bound IR', async () => {
@@ -76,7 +79,9 @@ test('changing the parity receipt invalidates the receipt-bound IR', async () =>
   const verification = await verify({ suppliedReport: changedReport });
   assert.equal(verification.status, 'failed');
   assert.equal(verification.admissible, false);
-  assert.equal(verification.matchesCurrent, false);
+  assert.equal(verification.suppliedIrId, contractIr.irId);
+  assert.equal(verification.computedIrId, contractIr.irId);
+  assert.notEqual(verification.expectedIrId, contractIr.irId);
 });
 
 test('changing an authored authority after emission is rejected', async () => {
