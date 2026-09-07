@@ -1,0 +1,67 @@
+name: marketing-manifest-ownership
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: marketing-manifest-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    env:
+      OWLS_BROWSER: ${{ matrix.browser }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: ores-wasm-loaders/owls-web-loader
+          ref: d60920a4645d05a85e7fde1a2e965e7ad49806ff
+          path: package-src/owls-web-loader
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: ores-wasm-loaders/owls-interfaces
+          ref: 231510f5d01046af657be42a5d4215be12622042
+          path: package-src/owls-interfaces
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Install the existing locked browser tooling
+        run: |
+          npm ci --ignore-scripts --prefix pilot/real
+          cd pilot/real
+          npx --no-install playwright install --with-deps "$OWLS_BROWSER"
+      - name: Record exact source and browser test inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          { git rev-parse HEAD; git -C package-src/owls-web-loader rev-parse HEAD; git -C package-src/owls-interfaces rev-parse HEAD; node --version; } > evidence/versions.txt
+          test "$(git -C package-src/owls-web-loader rev-parse HEAD)" = d60920a4645d05a85e7fde1a2e965e7ad49806ff
+          test "$(git -C package-src/owls-interfaces rev-parse HEAD)" = 231510f5d01046af657be42a5d4215be12622042
+          tar -czf evidence/source.tar.gz pilot/real/marketing-manifest.browser.test.mjs pilot/real/package.json pilot/real/package-lock.json .github/workflows/marketing-manifest-ownership.yml package-src/owls-web-loader/src package-src/owls-interfaces/index.mjs package-src/owls-interfaces/release.mjs package-src/owls-interfaces/validate.mjs package-src/owls-interfaces/schemas
+          sha256sum evidence/source.tar.gz > evidence/source.sha256
+      - name: Certify real HTTPS manifest ownership
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test --test-reporter=tap pilot/real/marketing-manifest.browser.test.mjs | tee evidence/browser.tap
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: manifest-ownership-${{ matrix.browser }}-${{ github.sha }}
+          path: evidence/
+          if-no-files-found: error
+          retention-days: 30
