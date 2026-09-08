@@ -1,0 +1,13 @@
+{
+  "schema": "ores-wasm-loaders-test.release-corpus-overrides/v1",
+  "targetContract": "owls-release-v2",
+  "sourceGitBlob": "5dc99815eb58855b3bcf88178cc81c360187cee8",
+  "overrides": [
+    {
+      "case": "schema-version-not-one",
+      "from": "schema",
+      "to": "valid",
+      "reason": "The admitted release contract now supports schemaVersion 1 and 2. This historical v1 negative is a valid v2 release and must round-trip unchanged."
+    }
+  ]
+}
