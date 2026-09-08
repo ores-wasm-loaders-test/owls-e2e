@@ -1,0 +1,1505 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "name": "valid-raw-wasm-minimal",
+      "expect": "valid",
+      "reason": "Single raw-wasm entrypoint on the one allowed origin.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "valid-wasm-bindgen-glue-and-binary",
+      "expect": "valid",
+      "reason": "wasm-bindgen entrypoint is the generated ES module; the binary is a separate wasm asset.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-editor",
+        "release": "2026.09.05-2",
+        "runtime": "wasm-bindgen",
+        "entrypoint": "editor-glue",
+        "assets": [
+          {
+            "id": "editor-glue",
+            "url": "https://assets.example/acme/editor.js",
+            "kind": "module",
+            "bytes": 62144,
+            "sha256": "5a37a890a38682f7e01ee60cf2866a60c1ca788e3bc5490070388372c8b0de62",
+            "prepare": false
+          },
+          {
+            "id": "editor-bg",
+            "url": "https://assets.example/acme/editor_bg.wasm",
+            "kind": "wasm",
+            "bytes": 3407872,
+            "sha256": "edfcd996fbc43bdd87378b0fbebac6b11e5026e421c458721e009b4a785e114f",
+            "prepare": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "valid-flutter-web-multi-asset",
+      "expect": "valid",
+      "reason": "flutter-web entrypoint is the generated bootstrap script alongside wasm, data and font assets.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-console",
+        "release": "2026.09.05-3",
+        "runtime": "flutter-web",
+        "entrypoint": "bootstrap",
+        "assets": [
+          {
+            "id": "bootstrap",
+            "url": "https://assets.example/acme/flutter_bootstrap.js",
+            "kind": "script",
+            "bytes": 3872,
+            "sha256": "2eb6e986a9c26b4f7d5ea58d8381e98ca86f197d26c5c13f8a1855e06edbac11",
+            "prepare": false
+          },
+          {
+            "id": "skwasm",
+            "url": "https://assets.example/acme/canvaskit/skwasm.wasm",
+            "kind": "wasm",
+            "bytes": 7340032,
+            "sha256": "fadc76dfb28be0d910663d581c0a3acd7c1a1f017c2d081d5f79367ead9126b5",
+            "prepare": true
+          },
+          {
+            "id": "assets-manifest",
+            "url": "https://assets.example/acme/assets/AssetManifest.bin.json",
+            "kind": "data",
+            "bytes": 18624,
+            "sha256": "7d534c062211606e2ffd9689b7f1a9b017d509e5857b7645b4a3d2bce7b4d149",
+            "prepare": true
+          },
+          {
+            "id": "icons",
+            "url": "https://assets.example/acme/assets/MaterialIcons-Regular.otf",
+            "kind": "font",
+            "bytes": 1594960,
+            "sha256": "6a6cf36d5054ed70ee88d7e865fe1fcae264e6d7e346f7550d6eb2caddde71f2",
+            "prepare": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "valid-extensions-object",
+      "expect": "valid",
+      "reason": "Organization configuration travels in extensions and is part of release identity.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-4",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ],
+        "extensions": {
+          "acme": {
+            "tenant": "eu-1",
+            "featureFlags": [
+              "charts",
+              "export"
+            ],
+            "cacheNamespace": "acme-viewer-eu1"
+          }
+        }
+      }
+    },
+    {
+      "name": "valid-multi-origin-allowlist",
+      "expect": "valid",
+      "reason": "Two allowlisted origins; every asset URL is canonical HTTPS on one of them.",
+      "origins": [
+        "https://assets.example",
+        "https://cdn.assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-5",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          },
+          {
+            "id": "atlas",
+            "url": "https://cdn.assets.example/acme/atlas.bin",
+            "kind": "data",
+            "bytes": 524288,
+            "sha256": "1e5d2026d0d330deca24aa3b2706f2d8db4670c224c64f5071cbcd0695a379b6",
+            "prepare": true
+          },
+          {
+            "id": "ui-font",
+            "url": "https://cdn.assets.example/acme/Inter-Regular.woff2",
+            "kind": "font",
+            "bytes": 96432,
+            "sha256": "f593663a1ca8e4a66ff1c798ac436701ce31813758046967fc5d5139f2c7e194",
+            "prepare": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "valid-bytes-lower-boundary",
+      "expect": "valid",
+      "reason": "bytes = 1 is the schema minimum and is accepted.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-6",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/stub.wasm",
+            "kind": "wasm",
+            "bytes": 1,
+            "sha256": "613b29208fc21fa55b2db959686a6b3035ae216ffc8e9af11d954af6e4073491",
+            "prepare": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "valid-bytes-upper-boundary",
+      "expect": "valid",
+      "reason": "bytes = 268435456 is the schema maximum; policy byte budgets are enforced at fetch time, not parse time.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-7",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/huge.wasm",
+            "kind": "wasm",
+            "bytes": 268435456,
+            "sha256": "ab6cbb4e4a887b06abd006ae0ba6acd8a6c18c4f4ab95f9ef5909a6f555ad06d",
+            "prepare": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "valid-prepare-false-everywhere",
+      "expect": "valid",
+      "reason": "A release may opt every asset out of speculative preparation.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-editor",
+        "release": "2026.09.05-8",
+        "runtime": "wasm-bindgen",
+        "entrypoint": "editor-glue",
+        "assets": [
+          {
+            "id": "editor-glue",
+            "url": "https://assets.example/acme/editor.js",
+            "kind": "module",
+            "bytes": 62144,
+            "sha256": "5a37a890a38682f7e01ee60cf2866a60c1ca788e3bc5490070388372c8b0de62",
+            "prepare": false
+          },
+          {
+            "id": "editor-bg",
+            "url": "https://assets.example/acme/editor_bg.wasm",
+            "kind": "wasm",
+            "bytes": 3407872,
+            "sha256": "edfcd996fbc43bdd87378b0fbebac6b11e5026e421c458721e009b4a785e114f",
+            "prepare": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "schema-additional-property-release",
+      "expect": "schema",
+      "reason": "additionalProperties:false at the release level rejects unknown keys.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ],
+        "signature": "not-part-of-v1"
+      }
+    },
+    {
+      "name": "schema-additional-property-asset",
+      "expect": "schema",
+      "reason": "additionalProperties:false at the asset level rejects unknown keys.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true,
+            "integrity": "sha384-..."
+          }
+        ]
+      }
+    },
+    {
+      "name": "schema-version-not-one",
+      "expect": "schema",
+      "reason": "schemaVersion is const 1; a v2 document must be rejected by a v1 host.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 2,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "schema-appid-uppercase",
+      "expect": "schema",
+      "reason": "appId pattern allows lowercase alphanumerics and dashes only.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "Acme-Viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "schema-appid-leading-dash",
+      "expect": "schema",
+      "reason": "appId must start with [a-z0-9].",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "-acme",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "schema-appid-too-long",
+      "expect": "schema",
+      "reason": "appId is capped at 64 characters; this one is 65.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "schema-release-slash",
+      "expect": "schema",
+      "reason": "release IDs may not contain path separators.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026/09/05",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "schema-release-leading-dot",
+      "expect": "schema",
+      "reason": "release must start with [A-Za-z0-9].",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": ".hidden",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "schema-asset-id-leading-underscore",
+      "expect": "schema",
+      "reason": "Asset id pattern forbids a leading underscore.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "_engine",
+        "assets": [
+          {
+            "id": "_engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "schema-entrypoint-empty",
+      "expect": "schema",
+      "reason": "entrypoint has minLength 1.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "schema-bytes-zero",
+      "expect": "schema",
+      "reason": "bytes has minimum 1; a zero-length asset is not describable.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 0,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "schema-bytes-above-maximum",
+      "expect": "schema",
+      "reason": "bytes maximum is 268435456; 268435457 is out of range.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 268435457,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "schema-bytes-non-integer",
+      "expect": "schema",
+      "reason": "bytes must be an integer, not a fractional number.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184.5,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "schema-bytes-negative",
+      "expect": "schema",
+      "reason": "bytes must be positive.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": -1,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "schema-sha256-uppercase",
+      "expect": "schema",
+      "reason": "sha256 pattern is lowercase hex only.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "FE8019F0855353C3994BBE753BC4C3A5F73733B040DE002EF6BD348B0306E934",
+            "prepare": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "schema-sha256-too-short",
+      "expect": "schema",
+      "reason": "sha256 must be exactly 64 hex characters.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e93",
+            "prepare": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "schema-sha256-non-hex",
+      "expect": "schema",
+      "reason": "sha256 must be hex; 'g' is not.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "ge8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "schema-url-not-https",
+      "expect": "schema",
+      "reason": "Asset URLs must start with https://.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "http://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "schema-url-whitespace",
+      "expect": "schema",
+      "reason": "The URL pattern forbids whitespace anywhere in the string.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine build.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "schema-url-too-long",
+      "expect": "schema",
+      "reason": "Asset URL maxLength is 4096; this one is 4113 characters.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "schema-assets-empty",
+      "expect": "schema",
+      "reason": "assets has minItems 1.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": []
+      }
+    },
+    {
+      "name": "schema-missing-entrypoint",
+      "expect": "schema",
+      "reason": "entrypoint is required.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "schema-missing-asset-prepare",
+      "expect": "schema",
+      "reason": "Every asset field including prepare is required.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934"
+          }
+        ]
+      }
+    },
+    {
+      "name": "schema-unknown-runtime",
+      "expect": "schema",
+      "reason": "runtime is a closed enum; 'wasi' is not a v1 runtime.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "wasi",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "schema-unknown-asset-kind",
+      "expect": "schema",
+      "reason": "kind is a closed enum; 'image' is not a v1 asset kind.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "image",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "schema-prepare-not-boolean",
+      "expect": "schema",
+      "reason": "prepare must be a JSON boolean, not the string \"true\".",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": "true"
+          }
+        ]
+      }
+    },
+    {
+      "name": "schema-extensions-not-object",
+      "expect": "schema",
+      "reason": "extensions must be an object when present.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ],
+        "extensions": [
+          "acme"
+        ]
+      }
+    },
+    {
+      "name": "schema-assets-not-array",
+      "expect": "schema",
+      "reason": "assets must be an array of asset objects.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": {
+          "engine": {}
+        }
+      }
+    },
+    {
+      "name": "host-origin-not-allowlisted",
+      "expect": "host",
+      "reason": "The asset URL is canonical HTTPS but its origin is not in the policy allowlist.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://evil.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      },
+      "code": "origin"
+    },
+    {
+      "name": "host-origin-sibling-subdomain",
+      "expect": "host",
+      "reason": "A sibling subdomain of an allowed host is a different origin and stays denied.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://cdn.assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      },
+      "code": "origin"
+    },
+    {
+      "name": "host-origin-nondefault-port",
+      "expect": "host",
+      "reason": "Origin comparison includes the port; :8443 is a different origin from the allowlisted one.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example:8443/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      },
+      "code": "origin"
+    },
+    {
+      "name": "host-url-query-string",
+      "expect": "host",
+      "reason": "A query string makes the URL non-canonical and can smuggle credentials into a prefetch.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm?token=abc",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      },
+      "code": "origin"
+    },
+    {
+      "name": "host-url-fragment",
+      "expect": "host",
+      "reason": "A fragment makes the URL non-canonical.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm#v2",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      },
+      "code": "origin"
+    },
+    {
+      "name": "host-url-userinfo",
+      "expect": "host",
+      "reason": "Userinfo in an asset URL is credential material and is rejected.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://deploy:s3cret@assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      },
+      "code": "origin"
+    },
+    {
+      "name": "host-url-uppercase-host",
+      "expect": "host",
+      "reason": "An uppercase host is not the canonical serialization of the URL.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://ASSETS.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      },
+      "code": "origin"
+    },
+    {
+      "name": "host-url-explicit-default-port",
+      "expect": "host",
+      "reason": "An explicitly written :443 is dropped by canonical serialization, so the manifest text is not canonical.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example:443/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      },
+      "code": "origin"
+    },
+    {
+      "name": "host-url-unparseable-authority",
+      "expect": "host",
+      "reason": "'https://[' matches the loose schema pattern but is not a parseable URL authority.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://[/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      },
+      "code": "origin"
+    },
+    {
+      "name": "host-duplicate-asset-id",
+      "expect": "host",
+      "reason": "Two assets share an id; asset identity must be unique inside a release.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          },
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine-copy.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": false
+          }
+        ]
+      },
+      "code": "duplicate"
+    },
+    {
+      "name": "host-duplicate-asset-url",
+      "expect": "host",
+      "reason": "Two assets share a URL, so one byte stream would carry two identities.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          },
+          {
+            "id": "engine-alias",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "1ab16920bd1c580cb8d0a9498350336a36aa15b6b18c0e478e588c4de92e869c",
+            "prepare": false
+          }
+        ]
+      },
+      "code": "duplicate"
+    },
+    {
+      "name": "host-unknown-entrypoint",
+      "expect": "host",
+      "reason": "entrypoint names an asset that the release does not declare.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine-v2",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      },
+      "code": "entrypoint"
+    },
+    {
+      "name": "host-entrypoint-kind-data",
+      "expect": "host",
+      "reason": "The entrypoint resolves to a data asset, which no runtime can start.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-console",
+        "release": "2026.09.05-3",
+        "runtime": "flutter-web",
+        "entrypoint": "assets-manifest",
+        "assets": [
+          {
+            "id": "bootstrap",
+            "url": "https://assets.example/acme/flutter_bootstrap.js",
+            "kind": "script",
+            "bytes": 3872,
+            "sha256": "2eb6e986a9c26b4f7d5ea58d8381e98ca86f197d26c5c13f8a1855e06edbac11",
+            "prepare": false
+          },
+          {
+            "id": "skwasm",
+            "url": "https://assets.example/acme/canvaskit/skwasm.wasm",
+            "kind": "wasm",
+            "bytes": 7340032,
+            "sha256": "fadc76dfb28be0d910663d581c0a3acd7c1a1f017c2d081d5f79367ead9126b5",
+            "prepare": true
+          },
+          {
+            "id": "assets-manifest",
+            "url": "https://assets.example/acme/assets/AssetManifest.bin.json",
+            "kind": "data",
+            "bytes": 18624,
+            "sha256": "7d534c062211606e2ffd9689b7f1a9b017d509e5857b7645b4a3d2bce7b4d149",
+            "prepare": true
+          },
+          {
+            "id": "icons",
+            "url": "https://assets.example/acme/assets/MaterialIcons-Regular.otf",
+            "kind": "font",
+            "bytes": 1594960,
+            "sha256": "6a6cf36d5054ed70ee88d7e865fe1fcae264e6d7e346f7550d6eb2caddde71f2",
+            "prepare": false
+          }
+        ]
+      },
+      "code": "entrypoint"
+    },
+    {
+      "name": "host-entrypoint-raw-wasm-points-at-module",
+      "expect": "host",
+      "reason": "raw-wasm requires a wasm entrypoint; this one points at an ES module.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine-glue",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          },
+          {
+            "id": "engine-glue",
+            "url": "https://assets.example/acme/engine.js",
+            "kind": "module",
+            "bytes": 41216,
+            "sha256": "9b5d35a32a95e013c9960ec00c526622a60bc09ca93a1079330cf6464dcbe627",
+            "prepare": false
+          }
+        ]
+      },
+      "code": "entrypoint"
+    },
+    {
+      "name": "host-entrypoint-bindgen-points-at-wasm",
+      "expect": "host",
+      "reason": "wasm-bindgen requires the generated module as entrypoint, not the raw binary.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-editor",
+        "release": "2026.09.05-2",
+        "runtime": "wasm-bindgen",
+        "entrypoint": "editor-bg",
+        "assets": [
+          {
+            "id": "editor-glue",
+            "url": "https://assets.example/acme/editor.js",
+            "kind": "module",
+            "bytes": 62144,
+            "sha256": "5a37a890a38682f7e01ee60cf2866a60c1ca788e3bc5490070388372c8b0de62",
+            "prepare": false
+          },
+          {
+            "id": "editor-bg",
+            "url": "https://assets.example/acme/editor_bg.wasm",
+            "kind": "wasm",
+            "bytes": 3407872,
+            "sha256": "edfcd996fbc43bdd87378b0fbebac6b11e5026e421c458721e009b4a785e114f",
+            "prepare": true
+          }
+        ]
+      },
+      "code": "entrypoint"
+    },
+    {
+      "name": "host-entrypoint-flutter-points-at-wasm",
+      "expect": "host",
+      "reason": "flutter-web requires the bootstrap script as entrypoint, not skwasm.",
+      "origins": [
+        "https://assets.example"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-console",
+        "release": "2026.09.05-3",
+        "runtime": "flutter-web",
+        "entrypoint": "skwasm",
+        "assets": [
+          {
+            "id": "bootstrap",
+            "url": "https://assets.example/acme/flutter_bootstrap.js",
+            "kind": "script",
+            "bytes": 3872,
+            "sha256": "2eb6e986a9c26b4f7d5ea58d8381e98ca86f197d26c5c13f8a1855e06edbac11",
+            "prepare": false
+          },
+          {
+            "id": "skwasm",
+            "url": "https://assets.example/acme/canvaskit/skwasm.wasm",
+            "kind": "wasm",
+            "bytes": 7340032,
+            "sha256": "fadc76dfb28be0d910663d581c0a3acd7c1a1f017c2d081d5f79367ead9126b5",
+            "prepare": true
+          },
+          {
+            "id": "assets-manifest",
+            "url": "https://assets.example/acme/assets/AssetManifest.bin.json",
+            "kind": "data",
+            "bytes": 18624,
+            "sha256": "7d534c062211606e2ffd9689b7f1a9b017d509e5857b7645b4a3d2bce7b4d149",
+            "prepare": true
+          },
+          {
+            "id": "icons",
+            "url": "https://assets.example/acme/assets/MaterialIcons-Regular.otf",
+            "kind": "font",
+            "bytes": 1594960,
+            "sha256": "6a6cf36d5054ed70ee88d7e865fe1fcae264e6d7e346f7550d6eb2caddde71f2",
+            "prepare": false
+          }
+        ]
+      },
+      "code": "entrypoint"
+    },
+    {
+      "name": "host-empty-origin-allowlist",
+      "expect": "host",
+      "reason": "An empty allowlist denies every asset; a host must not silently allow all origins.",
+      "origins": [],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      },
+      "code": "origin"
+    },
+    {
+      "name": "host-origin-allowlist-with-trailing-slash",
+      "expect": "host",
+      "reason": "Allowlist entries are origins, not URL prefixes; 'https://assets.example/' never equals an origin serialization.",
+      "origins": [
+        "https://assets.example/"
+      ],
+      "release": {
+        "schemaVersion": 1,
+        "appId": "acme-viewer",
+        "release": "2026.09.05-1",
+        "runtime": "raw-wasm",
+        "entrypoint": "engine",
+        "assets": [
+          {
+            "id": "engine",
+            "url": "https://assets.example/acme/engine.wasm",
+            "kind": "wasm",
+            "bytes": 1245184,
+            "sha256": "fe8019f0855353c3994bbe753bc4c3a5f73733b040de002ef6bd348b0306e934",
+            "prepare": true
+          }
+        ]
+      },
+      "code": "origin"
+    }
+  ]
+}
