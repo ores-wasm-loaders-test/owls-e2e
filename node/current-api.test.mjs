@@ -39,20 +39,37 @@ function parseCase(item) {
   return parseRelease(item.release, item.origins, releaseSchema);
 }
 
-test('the historical corpus evolves through one explicit, digest-bound release-v2 transition', () => {
+test('the historical corpus evolves through exact digest-bound release-v2 transitions', () => {
+  assert.equal(receipt.schema, 'ores-wasm-loaders-test.release-corpus-receipt/v2');
   assert.equal(receipt.status, 'passed');
   assert.equal(receipt.cases, 54);
-  assert.equal(receipt.overrides, 1);
+  assert.equal(receipt.expectationOverrides, 1);
+  assert.equal(receipt.codeOverrides, 7);
+  assert.equal(receipt.overrides, 8);
   assert.match(receipt.sourceGitBlob, /^[0-9a-f]{40}$/);
   assert.match(receipt.sourceSha256, /^[0-9a-f]{64}$/);
   assert.match(receipt.overrideSha256, /^[0-9a-f]{64}$/);
   assert.deepEqual(receipt.counts, { valid: 9, schema: 27, host: 18 });
 
-  const evolved = corpus.cases.filter((item) => item.historicalExpectation !== undefined);
-  assert.equal(evolved.length, 1);
-  assert.equal(evolved[0].name, 'schema-version-not-one');
-  assert.equal(evolved[0].historicalExpectation, 'schema');
-  assert.equal(evolved[0].expect, 'valid');
+  const evolvedExpectations = corpus.cases.filter((item) => item.historicalExpectation !== undefined);
+  assert.equal(evolvedExpectations.length, 1);
+  assert.equal(evolvedExpectations[0].name, 'schema-version-not-one');
+  assert.equal(evolvedExpectations[0].historicalExpectation, 'schema');
+  assert.equal(evolvedExpectations[0].expect, 'valid');
+
+  const evolvedCodes = corpus.cases
+    .filter((item) => item.historicalCode !== undefined)
+    .map((item) => `${item.name}:${item.historicalCode}->${item.code}`)
+    .sort();
+  assert.deepEqual(evolvedCodes, [
+    'host-duplicate-asset-id:duplicate->manifest',
+    'host-duplicate-asset-url:duplicate->manifest',
+    'host-entrypoint-bindgen-points-at-wasm:entrypoint->manifest',
+    'host-entrypoint-flutter-points-at-wasm:entrypoint->manifest',
+    'host-entrypoint-kind-data:entrypoint->manifest',
+    'host-entrypoint-raw-wasm-points-at-module:entrypoint->manifest',
+    'host-unknown-entrypoint:entrypoint->manifest',
+  ]);
 });
 
 test('all 54 cases agree with independently authored Schema A and current host invariants', () => {
