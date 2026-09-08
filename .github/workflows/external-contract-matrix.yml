@@ -1,0 +1,190 @@
+name: external contract matrix
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: external-contract-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  OWLS_INTERFACES_REF: f8fc1873c1b402c04f67dbf62f89b3691ba300fe
+  OWLS_WEB_LOADER_REF: 25dad0608056a5c541f4116bc7dbbeadb4cc0a4f
+
+jobs:
+  node-corpus:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out the external consumer suite
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Check out the exact admitted interfaces
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: ores-wasm-loaders/owls-interfaces
+          ref: ${{ env.OWLS_INTERFACES_REF }}
+          path: zed_modules/ores-wasm-loaders/owls-interfaces
+          persist-credentials: false
+
+      - name: Check out the exact hardened browser loader
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: ores-wasm-loaders/owls-web-loader
+          ref: ${{ env.OWLS_WEB_LOADER_REF }}
+          path: zed_modules/ores-wasm-loaders/owls-web-loader
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+
+      - name: Compile the exact TypeScript projection
+        working-directory: zed_modules/ores-wasm-loaders/owls-interfaces
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          ./node_modules/.bin/tsc --project typescript/tsconfig.json --pretty false
+
+      - name: Seal source and corpus evidence before conformance
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          node --input-type=module <<'NODE'
+          import { writeFile } from 'node:fs/promises';
+          import { loadCurrentCorpus } from './corpus/load-current.mjs';
+          const { receipt } = loadCurrentCorpus();
+          await writeFile('evidence/corpus-receipt.json', `${JSON.stringify(receipt, null, 2)}\n`);
+          NODE
+          {
+            printf 'e2e=%s\n' "$(git rev-parse HEAD)"
+            printf 'interfaces=%s\n' "$(git -C zed_modules/ores-wasm-loaders/owls-interfaces rev-parse HEAD)"
+            printf 'web_loader=%s\n' "$(git -C zed_modules/ores-wasm-loaders/owls-web-loader rev-parse HEAD)"
+            printf 'node=%s\n' "$(node --version)"
+          } > evidence/versions.txt
+          sha256sum corpus/release-corpus.json corpus/expectation-overrides.v2.json > evidence/inputs.sha256
+
+      - name: Run all 54 evolved corpus cases and loader lifecycle checks
+        run: |
+          set -euo pipefail
+          node --test --test-reporter=tap node/current-api.test.mjs | tee evidence/node.tap
+
+      - name: Preserve external corpus evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: external-corpus-${{ github.sha }}
+          path: evidence/
+          if-no-files-found: error
+          retention-days: 30
+          include-hidden-files: true
+
+  rust-projection:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: ores-wasm-loaders/owls-interfaces
+          ref: ${{ env.OWLS_INTERFACES_REF }}
+          persist-credentials: false
+      - name: Install exact Rust toolchain
+        run: rustup toolchain install 1.94.0 --profile minimal --component rustfmt,clippy
+      - name: Format, lint, and run v1/v2 fixtures
+        working-directory: rust
+        run: |
+          set -euo pipefail
+          cargo +1.94.0 fmt --all -- --check
+          cargo +1.94.0 clippy --locked --all-targets -- -D warnings
+          cargo +1.94.0 test --locked
+
+  go-projection:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: ores-wasm-loaders/owls-interfaces
+          ref: ${{ env.OWLS_INTERFACES_REF }}
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: '1.23.2'
+          cache: false
+      - name: Format, vet, and run v1/v2 fixtures
+        working-directory: go
+        run: |
+          set -euo pipefail
+          test -z "$(gofmt -l .)"
+          go vet ./...
+          go test ./...
+
+  dart-projection:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: ores-wasm-loaders/owls-interfaces
+          ref: ${{ env.OWLS_INTERFACES_REF }}
+          persist-credentials: false
+      - name: Check out exact Flutter and Dart SDK
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: flutter/flutter
+          ref: 05db9689081f091050f01aed79f04dce0c750154
+          path: flutter-sdk
+          persist-credentials: false
+      - name: Format, analyze, and run v1/v2 fixtures
+        working-directory: dart
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/flutter-sdk/bin:$PATH"
+          flutter config --no-analytics
+          dart --version
+          dart pub get --enforce-lockfile
+          dart format lib bin
+          git diff --exit-code -- lib bin
+          dart analyze
+          dart run bin/fixture_check.dart
+
+  gleam-projection:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: ores-wasm-loaders/owls-interfaces
+          ref: ${{ env.OWLS_INTERFACES_REF }}
+          persist-credentials: false
+      - name: Install checksum-pinned Gleam 1.18.1
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/gleam.tar.gz"
+          directory="$RUNNER_TEMP/gleam"
+          curl --fail --location --silent --show-error --retry 3 \
+            https://github.com/gleam-lang/gleam/releases/download/v1.18.1/gleam-v1.18.1-x86_64-unknown-linux-musl.tar.gz \
+            --output "$archive"
+          echo '4955a38c2e8c99457458e2471472ccd5ee3c45bd7637a315ce33bccf0dd75d9e  '"$archive" | sha256sum --check --strict
+          mkdir -p "$directory"
+          tar -xzf "$archive" -C "$directory"
+          binary="$(find "$directory" -type f -name gleam -perm -u+x | head -n 1)"
+          test -n "$binary"
+          echo "$(dirname "$binary")" >> "$GITHUB_PATH"
+      - name: Format and compile the Gleam projection
+        working-directory: gleam
+        run: |
+          set -euo pipefail
+          gleam --version
+          gleam format src
+          git diff --exit-code -- src
+          gleam check

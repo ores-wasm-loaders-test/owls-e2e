@@ -1,0 +1,57 @@
+{
+  "schema": "ores-wasm-loaders-test.release-corpus-overrides/v2",
+  "targetContract": "owls-release-v2",
+  "sourceGitBlob": "5dc99815eb58855b3bcf88178cc81c360187cee8",
+  "expectationOverrides": [
+    {
+      "case": "schema-version-not-one",
+      "from": "schema",
+      "to": "valid",
+      "reason": "The admitted release contract now supports schemaVersion 1 and 2. This historical v1 negative is a valid v2 release and must round-trip unchanged."
+    }
+  ],
+  "codeOverrides": [
+    {
+      "case": "host-duplicate-asset-id",
+      "from": "duplicate",
+      "to": "manifest",
+      "reason": "The shared parser now classifies duplicate asset identities as manifest invariant failures. Schema A still accepts the structure and the host still rejects it."
+    },
+    {
+      "case": "host-duplicate-asset-url",
+      "from": "duplicate",
+      "to": "manifest",
+      "reason": "The shared parser now classifies duplicate asset URLs as manifest invariant failures. Schema A still accepts the structure and the host still rejects it."
+    },
+    {
+      "case": "host-unknown-entrypoint",
+      "from": "entrypoint",
+      "to": "manifest",
+      "reason": "The shared parser now reports undeclared entrypoints through the unified manifest error code. The release remains Schema-A-valid and host-rejected."
+    },
+    {
+      "case": "host-entrypoint-kind-data",
+      "from": "entrypoint",
+      "to": "manifest",
+      "reason": "The shared parser now reports an entrypoint kind mismatch through the unified manifest error code. The host rejection and safety boundary are unchanged."
+    },
+    {
+      "case": "host-entrypoint-raw-wasm-points-at-module",
+      "from": "entrypoint",
+      "to": "manifest",
+      "reason": "The shared parser now reports a raw-Wasm entrypoint kind mismatch through the unified manifest error code. The host still rejects the release."
+    },
+    {
+      "case": "host-entrypoint-bindgen-points-at-wasm",
+      "from": "entrypoint",
+      "to": "manifest",
+      "reason": "The shared parser now reports a wasm-bindgen entrypoint kind mismatch through the unified manifest error code. The host still rejects the release."
+    },
+    {
+      "case": "host-entrypoint-flutter-points-at-wasm",
+      "from": "entrypoint",
+      "to": "manifest",
+      "reason": "The shared parser now reports a Flutter entrypoint kind mismatch through the unified manifest error code. The host still rejects the release."
+    }
+  ]
+}
