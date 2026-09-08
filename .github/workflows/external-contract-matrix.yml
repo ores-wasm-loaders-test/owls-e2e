@@ -55,10 +55,7 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund
           ./node_modules/.bin/tsc --project typescript/tsconfig.json --pretty false
 
-      - name: Run all 54 evolved corpus cases and loader lifecycle checks
-        run: node --test --test-reporter=tap node/current-api.test.mjs
-
-      - name: Seal source and corpus evidence
+      - name: Seal source and corpus evidence before conformance
         run: |
           set -euo pipefail
           mkdir -p evidence
@@ -75,6 +72,11 @@ jobs:
             printf 'node=%s\n' "$(node --version)"
           } > evidence/versions.txt
           sha256sum corpus/release-corpus.json corpus/expectation-overrides.v2.json > evidence/inputs.sha256
+
+      - name: Run all 54 evolved corpus cases and loader lifecycle checks
+        run: |
+          set -euo pipefail
+          node --test --test-reporter=tap node/current-api.test.mjs | tee evidence/node.tap
 
       - name: Preserve external corpus evidence
         if: always()
