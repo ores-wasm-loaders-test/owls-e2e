@@ -58,33 +58,64 @@ test('the historical corpus evolves through one explicit, digest-bound release-v
 test('all 54 cases agree with independently authored Schema A and current host invariants', () => {
   assert.equal(corpus.cases.length, 54);
   const counts = { valid: 0, schema: 0, host: 0 };
+  const discrepancies = [];
+
   for (const item of corpus.cases) {
     counts[item.expect] += 1;
     const structural = validateAgainst(item.release, releaseSchema);
+
     if (item.expect === 'valid') {
-      assert.deepEqual(structural, [], `${item.name}: Schema A rejected a valid release`);
-      const parsed = parseCase(item);
-      assert.deepEqual(JSON.parse(JSON.stringify(parsed)), item.release, `${item.name}: parse changed the release`);
-      assert.ok(Object.isFrozen(parsed), `${item.name}: parsed release is mutable`);
+      if (structural.length > 0) {
+        discrepancies.push(`${item.name}: Schema A rejected a valid release (${structural.length} findings)`);
+        continue;
+      }
+      try {
+        const parsed = parseCase(item);
+        if (JSON.stringify(parsed) !== JSON.stringify(item.release)) {
+          discrepancies.push(`${item.name}: parse changed the release`);
+        }
+        if (!Object.isFrozen(parsed)) discrepancies.push(`${item.name}: parsed release is mutable`);
+      } catch (error) {
+        discrepancies.push(`${item.name}: current host rejected a valid release with ${error?.code ?? error?.name ?? typeof error}`);
+      }
       continue;
     }
+
     if (item.expect === 'schema') {
-      assert.ok(structural.length > 0, `${item.name}: Schema A accepted a schema-negative case`);
-      assert.throws(
-        () => parseCase(item),
-        (error) => error instanceof LoaderError && error.code === 'manifest',
-        item.name,
-      );
+      if (structural.length === 0) {
+        discrepancies.push(`${item.name}: Schema A accepted a schema-negative case`);
+      }
+      try {
+        parseCase(item);
+        discrepancies.push(`${item.name}: current host accepted a schema-negative case`);
+      } catch (error) {
+        if (!(error instanceof LoaderError)) {
+          discrepancies.push(`${item.name}: schema-negative case leaked ${error?.constructor?.name ?? typeof error}`);
+        } else if (error.code !== 'manifest') {
+          discrepancies.push(`${item.name}: schema-negative host code manifest -> ${error.code}`);
+        }
+      }
       continue;
     }
-    assert.deepEqual(structural, [], `${item.name}: host-negative case is actually a schema failure`);
-    assert.throws(() => parseCase(item), (error) => {
-      assert.ok(error instanceof LoaderError, `${item.name}: leaked ${error?.constructor?.name ?? typeof error}`);
-      if (item.code) assert.equal(error.code, item.code, `${item.name}: wrong host error code`);
-      return true;
-    });
+
+    if (structural.length > 0) {
+      discrepancies.push(`${item.name}: host-negative case is now a Schema A failure (${structural.length} findings)`);
+      continue;
+    }
+    try {
+      parseCase(item);
+      discrepancies.push(`${item.name}: current host accepted a host-negative case`);
+    } catch (error) {
+      if (!(error instanceof LoaderError)) {
+        discrepancies.push(`${item.name}: host-negative case leaked ${error?.constructor?.name ?? typeof error}`);
+      } else if (item.code && error.code !== item.code) {
+        discrepancies.push(`${item.name}: host code ${item.code} -> ${error.code}`);
+      }
+    }
   }
+
   assert.deepEqual(counts, receipt.counts);
+  assert.deepEqual(discrepancies, []);
 });
 
 const ORIGIN = 'https://assets.example';
