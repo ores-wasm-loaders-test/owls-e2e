@@ -14,8 +14,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  OWLS_INTERFACES_REF: f8fc1873c1b402c04f67dbf62f89b3691ba300fe
-  OWLS_WEB_LOADER_REF: 25dad0608056a5c541f4116bc7dbbeadb4cc0a4f
+  OWLS_INTERFACES_REF: 76364a23364993ff4be1ed82a4978725ed6f811c
+  OWLS_WEB_LOADER_REF: 28e52ec4b7b53a6556e5be2142993c584535b595
 
 jobs:
   node-corpus:
