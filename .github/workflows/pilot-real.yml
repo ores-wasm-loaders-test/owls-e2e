@@ -9,6 +9,9 @@ permissions:
 concurrency:
   group: real-pilot-v2-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
+env:
+  OWLS_WEB_LOADER_REF: a4b642f44f863d6d83d7dc183b4e56945126dfdf
+  OWLS_INTERFACES_REF: 76364a23364993ff4be1ed82a4978725ed6f811c
 jobs:
   packages:
     runs-on: ubuntu-24.04
@@ -20,18 +23,28 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: ores-wasm-loaders/owls-web-loader
-          ref: 28e52ec4b7b53a6556e5be2142993c584535b595
+          ref: ${{ env.OWLS_WEB_LOADER_REF }}
           path: package-src/owls-web-loader
           persist-credentials: false
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: ores-wasm-loaders/owls-interfaces
-          ref: 76364a23364993ff4be1ed82a4978725ed6f811c
+          ref: ${{ env.OWLS_INTERFACES_REF }}
           path: package-src/owls-interfaces
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22'
+      - name: Verify exact package source closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          for ref in "$OWLS_INTERFACES_REF" "$OWLS_WEB_LOADER_REF"; do
+            test "${#ref}" -eq 40
+            case "$ref" in *[!0-9a-f]*) exit 1 ;; esac
+          done
+          test "$(git -C package-src/owls-web-loader rev-parse HEAD)" = "$OWLS_WEB_LOADER_REF"
+          test "$(git -C package-src/owls-interfaces rev-parse HEAD)" = "$OWLS_INTERFACES_REF"
       - name: Build and test manifest tool with its committed dependency lock
         shell: bash
         run: |
