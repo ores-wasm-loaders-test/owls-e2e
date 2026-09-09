@@ -16,11 +16,14 @@ concurrency:
 env:
   OWLS_INTERFACES_REF: 76364a23364993ff4be1ed82a4978725ed6f811c
   TSJSV_REF: 03ccc0ecdfc70f9198c3ccf80718910961d3fde1
+  OWLS_WEB_LOADER_REF: a4b642f44f863d6d83d7dc183b4e56945126dfdf
+  OWLS_RUNTIME_REF: a4f996544aff9004988c8fa76fbadc2d8fede555
+  OWLS_FLUTTER_REF: ea2ca9c274d386fc68e2cf72412d015b88df4774
 
 jobs:
   external-consumer:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Check out external consumer suite
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -43,6 +46,30 @@ jobs:
           path: subject/typespec-json-schema-validator
           persist-credentials: false
 
+      - name: Check out exact browser loader
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: ores-wasm-loaders/owls-web-loader
+          ref: ${{ env.OWLS_WEB_LOADER_REF }}
+          path: subject/owls-web-loader
+          persist-credentials: false
+
+      - name: Check out exact native Rust loader
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: ores-wasm-loaders/owls-runtime.rs
+          ref: ${{ env.OWLS_RUNTIME_REF }}
+          path: subject/owls-runtime
+          persist-credentials: false
+
+      - name: Check out exact Flutter loader
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: ores-wasm-loaders/owls-flutter
+          ref: ${{ env.OWLS_FLUTTER_REF }}
+          path: subject/owls-flutter
+          persist-credentials: false
+
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -52,23 +79,41 @@ jobs:
         working-directory: subject/typespec-json-schema-validator
         run: npm ci --omit=dev
 
-      - name: Record exact source closure
+      - name: Record exact five-host source closure
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p .contract-ir-evidence
-          for ref in "$OWLS_INTERFACES_REF" "$TSJSV_REF"; do
+          for ref in \
+            "$OWLS_INTERFACES_REF" \
+            "$TSJSV_REF" \
+            "$OWLS_WEB_LOADER_REF" \
+            "$OWLS_RUNTIME_REF" \
+            "$OWLS_FLUTTER_REF"; do
             test "${#ref}" -eq 40
             case "$ref" in *[!0-9a-f]*) exit 1 ;; esac
           done
           test "$(git -C subject/owls-interfaces rev-parse HEAD)" = "$OWLS_INTERFACES_REF"
           test "$(git -C subject/typespec-json-schema-validator rev-parse HEAD)" = "$TSJSV_REF"
+          test "$(git -C subject/owls-web-loader rev-parse HEAD)" = "$OWLS_WEB_LOADER_REF"
+          test "$(git -C subject/owls-runtime rev-parse HEAD)" = "$OWLS_RUNTIME_REF"
+          test "$(git -C subject/owls-flutter rev-parse HEAD)" = "$OWLS_FLUTTER_REF"
           {
             printf 'consumer=%s\n' "$(git rev-parse HEAD)"
-            printf 'owls_interfaces=%s\n' "$(git -C subject/owls-interfaces rev-parse HEAD)"
-            printf 'validator=%s\n' "$(git -C subject/typespec-json-schema-validator rev-parse HEAD)"
+            printf 'owls_interfaces=%s\n' "$OWLS_INTERFACES_REF"
+            printf 'validator=%s\n' "$TSJSV_REF"
+            printf 'web_loader=%s\n' "$OWLS_WEB_LOADER_REF"
+            printf 'native_loader=%s\n' "$OWLS_RUNTIME_REF"
+            printf 'flutter_loader=%s\n' "$OWLS_FLUTTER_REF"
             printf 'node=%s\n' "$(node --version)"
           } > .contract-ir-evidence/versions.txt
+
+      - name: Prove every OWLS host enforces the same TJSV contract closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test --test-reporter=tap contract-ir/source-closure.test.mjs \
+            | tee .contract-ir-evidence/source-closure.tap
 
       - name: Stage admitted interface fixtures as independent TJSV corpus
         shell: bash
@@ -134,7 +179,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node --test --test-reporter=tap contract-ir/*.test.mjs \
+          node --test --test-reporter=tap \
+            contract-ir/admission.test.mjs \
+            contract-ir/workflow-policy.test.mjs \
             | tee .contract-ir-evidence/admission.tap
 
       - name: Seal evidence digests
@@ -146,14 +193,22 @@ jobs:
             .contract-ir-evidence/contract-ir.json \
             .contract-ir-evidence/tjsv-consumer-verification.json \
             .contract-ir-evidence/verification.json \
+            .contract-ir-evidence/source-closure.tap \
             .contract-ir-evidence/admission.tap \
+            contract-ir/source-closure.json \
             > .contract-ir-evidence/sha256.txt
           tar -czf .contract-ir-evidence/source.tar.gz \
             contract-ir/admission.test.mjs \
             contract-ir/workflow-policy.test.mjs \
+            contract-ir/source-closure.json \
+            contract-ir/source-closure.test.mjs \
             .github/workflows/contract-ir-admission.yml \
             subject/owls-interfaces/contracts/main.tsp \
             subject/owls-interfaces/schemas/release.schema.json \
+            subject/owls-interfaces/.github/workflows/contract.yml \
+            subject/owls-web-loader/.github/workflows/contract-ir-consumer.yml \
+            subject/owls-runtime/.github/workflows/native-contract.yml \
+            subject/owls-flutter/.github/workflows/flutter-package.yml \
             subject/typespec-json-schema-validator/src/contract-ir.mjs \
             subject/typespec-json-schema-validator/src/contract-ir-file.mjs \
             subject/typespec-json-schema-validator/schema/contract-ir.schema.json
