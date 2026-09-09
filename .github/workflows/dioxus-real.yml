@@ -79,6 +79,10 @@ jobs:
           test "$(git -C subject/owls-web-loader rev-parse HEAD)" = "$OWLS_WEB_LOADER_REF"
           test "$(git -C subject/typespec-json-schema-validator rev-parse HEAD)" = "$TSJSV_REF"
           test -f subject/dioxus/Cargo.lock
+          if grep -q '^name = "wasm-split-harness"$' subject/dioxus/Cargo.lock; then
+            echo 'Tagged Dioxus lock unexpectedly already contains the harness; review provenance rule' >&2
+            exit 1
+          fi
           grep -q 'features = \["web", "router", "wasm-split"\]' subject/dioxus/packages/playwright-tests/wasm-split-harness/Cargo.toml
           grep -q '#\[route("/child")\]' subject/dioxus/packages/playwright-tests/wasm-split-harness/src/main.rs
 
@@ -149,17 +153,29 @@ jobs:
           rustc +1.94.0 --version
           cargo +1.94.0 --version
 
-      - name: Build exact upstream Dioxus split harness
+      - name: Resolve and build exact upstream Dioxus split harness
         shell: bash
         run: |
           set -euo pipefail
-          cargo +1.94.0 rustc --locked \
+          mkdir -p .dioxus-evidence/build
+          cp subject/dioxus/Cargo.lock .dioxus-evidence/build/upstream-Cargo.lock
+          sha256sum .dioxus-evidence/build/upstream-Cargo.lock > .dioxus-evidence/build/upstream-Cargo.lock.sha256
+          # Dioxus v0.7.9 ships this harness source but omits the unpublished harness package
+          # from its root lock. Resolve that exact workspace member once, retain the resulting
+          # lock and diff, and require every subsequent Cargo command to use --locked.
+          cargo +1.94.0 rustc \
             --manifest-path subject/dioxus/Cargo.toml \
             --package wasm-split-harness \
             --target wasm32-unknown-unknown \
             --profile wasm-split-release \
             -- -Clink-args=--emit-relocs
           test -s subject/dioxus/target/wasm32-unknown-unknown/wasm-split-release/wasm-split-harness.wasm
+          test "$(git -C subject/dioxus status --porcelain --untracked-files=no)" = ' M Cargo.lock'
+          git -C subject/dioxus diff -- Cargo.lock > .dioxus-evidence/build/dioxus-Cargo.lock.diff
+          test -s .dioxus-evidence/build/dioxus-Cargo.lock.diff
+          grep -q '^+name = "wasm-split-harness"$' .dioxus-evidence/build/dioxus-Cargo.lock.diff
+          cp subject/dioxus/Cargo.lock .dioxus-evidence/build/derived-Cargo.lock
+          grep -q '^name = "wasm-split-harness"$' .dioxus-evidence/build/derived-Cargo.lock
           cargo +1.94.0 build --locked \
             --manifest-path subject/dioxus/Cargo.toml \
             --package wasm-split-cli \
@@ -320,7 +336,10 @@ jobs:
             printf 'cargo=%s\n' "$(cargo +1.94.0 --version)"
             printf 'node=%s\n' "$(node --version)"
           } > .dioxus-evidence/build/versions.txt
-          sha256sum subject/dioxus/Cargo.lock > .dioxus-evidence/build/dioxus-Cargo.lock.sha256
+          sha256sum \
+            .dioxus-evidence/build/upstream-Cargo.lock \
+            .dioxus-evidence/build/derived-Cargo.lock \
+            > .dioxus-evidence/build/dioxus-locks.sha256
           find pilot/real/inputs/dioxus/public -type f -print0 | sort -z | xargs -0 sha256sum > .dioxus-evidence/build/public-files.sha256
           sha256sum \
             .dioxus-evidence/tjsv/report.json \
