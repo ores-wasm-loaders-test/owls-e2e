@@ -10,7 +10,7 @@ concurrency:
   group: marketing-manifest-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 env:
-  OWLS_WEB_LOADER_REF: 28e52ec4b7b53a6556e5be2142993c584535b595
+  OWLS_WEB_LOADER_REF: a4b642f44f863d6d83d7dc183b4e56945126dfdf
   OWLS_INTERFACES_REF: 76364a23364993ff4be1ed82a4978725ed6f811c
 jobs:
   browser:
