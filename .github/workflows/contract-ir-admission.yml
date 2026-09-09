@@ -115,7 +115,7 @@ jobs:
           node --test --test-reporter=tap contract-ir/source-closure.test.mjs \
             | tee .contract-ir-evidence/source-closure.tap
 
-      - name: Emit parity receipt, Schema B, and Contract IR
+      - name: Emit parity receipt, Schema B, and Contract IR for the external consumer
         shell: bash
         run: |
           set -euo pipefail
@@ -128,22 +128,35 @@ jobs:
             --max-probes=96 \
             --quiet=true
 
-      - name: Re-verify the exact IR and five-language projection receipt
+      - name: Independently reproduce and verify interface-owned admission
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p subject/owls-interfaces/.tools
           ln -s ../../typespec-json-schema-validator \
             subject/owls-interfaces/.tools/typespec-json-schema-validator
-          mkdir -p subject/owls-interfaces/.typespec-json-schema-validator
-          cp .contract-ir-evidence/report.json \
-            subject/owls-interfaces/.typespec-json-schema-validator/report.json
-          cp .contract-ir-evidence/contract-ir.json \
-            subject/owls-interfaces/.typespec-json-schema-validator/contract-ir.json
-          cp -R .contract-ir-evidence/generated \
-            subject/owls-interfaces/.typespec-json-schema-validator/generated
-          (cd subject/owls-interfaces && node scripts/verify-contract-ir.mjs)
-          (cd subject/owls-interfaces && node scripts/check-language-projections.mjs)
+          (
+            cd subject/owls-interfaces
+            node .tools/typespec-json-schema-validator/bin/typespec-json-schema-validator.mjs check \
+              --typespec=contracts/main.tsp \
+              --schema=schemas/release.schema.json \
+              --report=.typespec-json-schema-validator/report.json \
+              --contract-ir=.typespec-json-schema-validator/contract-ir.json \
+              --output-dir=.typespec-json-schema-validator/generated \
+              --max-probes=96 \
+              --quiet=true
+            node scripts/verify-contract-ir.mjs
+            node scripts/check-language-projections.mjs
+          )
+          node --input-type=module <<'NODE'
+          import { readFile } from 'node:fs/promises';
+          const readJson = async (path) => JSON.parse(await readFile(path, 'utf8'));
+          const external = await readJson('.contract-ir-evidence/contract-ir.json');
+          const owned = await readJson('subject/owls-interfaces/.typespec-json-schema-validator/contract-ir.json');
+          if (external.irId !== owned.irId) {
+            throw new Error(`Contract IR reproduction drift: ${external.irId} != ${owned.irId}`);
+          }
+          NODE
           cp subject/owls-interfaces/.typespec-json-schema-validator/projection-receipt.json \
             .contract-ir-evidence/projection-receipt.json
 
