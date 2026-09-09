@@ -15,7 +15,7 @@ concurrency:
 
 env:
   OWLS_INTERFACES_REF: 76364a23364993ff4be1ed82a4978725ed6f811c
-  OWLS_WEB_LOADER_REF: 28e52ec4b7b53a6556e5be2142993c584535b595
+  OWLS_WEB_LOADER_REF: a4b642f44f863d6d83d7dc183b4e56945126dfdf
 
 jobs:
   node-corpus:
@@ -47,6 +47,17 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
+
+      - name: Verify immutable external source closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          for ref in "$OWLS_INTERFACES_REF" "$OWLS_WEB_LOADER_REF"; do
+            test "${#ref}" -eq 40
+            case "$ref" in *[!0-9a-f]*) exit 1 ;; esac
+          done
+          test "$(git -C zed_modules/ores-wasm-loaders/owls-interfaces rev-parse HEAD)" = "$OWLS_INTERFACES_REF"
+          test "$(git -C zed_modules/ores-wasm-loaders/owls-web-loader rev-parse HEAD)" = "$OWLS_WEB_LOADER_REF"
 
       - name: Compile the exact TypeScript projection
         working-directory: zed_modules/ores-wasm-loaders/owls-interfaces
