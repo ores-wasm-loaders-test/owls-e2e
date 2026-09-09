@@ -1,0 +1,18 @@
+{
+  "schema": "ores-wasm-loaders.source-closure/v1",
+  "issue": "DEN-3828",
+  "authorities": {
+    "typespec": "independently-authored-authority",
+    "jsonSchemaA": "independently-authored-authority",
+    "precedence": "none",
+    "schemaB": "comparison-evidence-only",
+    "contractIr": "derived-admission-evidence"
+  },
+  "components": {
+    "interfaces": "1c3b29f1c43f9f38f637106e3ff601620df4a572",
+    "validator": "6bb5b7c1ee41c8b43741e50a264c33a1165549c4",
+    "webLoader": "000fef2605389eaf3e12847efb2005d628ea1440",
+    "nativeLoader": "77e0eca5abd480208769e164ac47c6931eddc31f",
+    "flutterLoader": "e12837e2281c6c4f7dedbe2950ac9e8fe3297a20"
+  }
+}
