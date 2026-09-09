@@ -149,9 +149,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rustup toolchain install 1.94.0 --profile minimal --target wasm32-unknown-unknown
+          rustup toolchain install 1.94.0 --profile minimal --target wasm32-unknown-unknown --component rustfmt
           rustc +1.94.0 --version
           cargo +1.94.0 --version
+          cargo +1.94.0 fmt --version
 
       - name: Repair the tagged Dioxus lock with the observed Cargo 1.94 delta and build frozen
         shell: bash
