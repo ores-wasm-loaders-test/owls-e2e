@@ -14,8 +14,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  OWLS_INTERFACES_REF: 62acd61c0dab4579688a09f41dea5693f0a266d0
-  TSJSV_REF: 3171025cbe03a7026a71ce94eea18c910e1431b2
+  OWLS_INTERFACES_REF: 1c3b29f1c43f9f38f637106e3ff601620df4a572
+  TSJSV_REF: 6bb5b7c1ee41c8b43741e50a264c33a1165549c4
 
 jobs:
   external-consumer:
@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: ores-wasm-loaders/owls-interfaces
-          ref: 62acd61c0dab4579688a09f41dea5693f0a266d0
+          ref: ${{ env.OWLS_INTERFACES_REF }}
           path: subject/owls-interfaces
           persist-credentials: false
 
@@ -39,7 +39,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: ORESoftware/typespec-json-schema-validator
-          ref: 3171025cbe03a7026a71ce94eea18c910e1431b2
+          ref: ${{ env.TSJSV_REF }}
           path: subject/typespec-json-schema-validator
           persist-credentials: false
 
@@ -57,6 +57,10 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .contract-ir-evidence
+          for ref in "$OWLS_INTERFACES_REF" "$TSJSV_REF"; do
+            test "${#ref}" -eq 40
+            case "$ref" in *[!0-9a-f]*) exit 1 ;; esac
+          done
           test "$(git -C subject/owls-interfaces rev-parse HEAD)" = "$OWLS_INTERFACES_REF"
           test "$(git -C subject/typespec-json-schema-validator rev-parse HEAD)" = "$TSJSV_REF"
           {
@@ -79,6 +83,25 @@ jobs:
             --max-probes=96 \
             --quiet=true
 
+      - name: Re-verify the exact IR and five-language projection receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p subject/owls-interfaces/.tools
+          ln -s ../../typespec-json-schema-validator \
+            subject/owls-interfaces/.tools/typespec-json-schema-validator
+          mkdir -p subject/owls-interfaces/.typespec-json-schema-validator
+          cp .contract-ir-evidence/report.json \
+            subject/owls-interfaces/.typespec-json-schema-validator/report.json
+          cp .contract-ir-evidence/contract-ir.json \
+            subject/owls-interfaces/.typespec-json-schema-validator/contract-ir.json
+          cp -R .contract-ir-evidence/generated \
+            subject/owls-interfaces/.typespec-json-schema-validator/generated
+          (cd subject/owls-interfaces && node scripts/verify-contract-ir.mjs)
+          (cd subject/owls-interfaces && node scripts/check-language-projections.mjs)
+          cp subject/owls-interfaces/.typespec-json-schema-validator/projection-receipt.json \
+            .contract-ir-evidence/projection-receipt.json
+
       - name: Run adversarial downstream admission tests
         shell: bash
         run: |
@@ -93,6 +116,7 @@ jobs:
           sha256sum \
             .contract-ir-evidence/report.json \
             .contract-ir-evidence/contract-ir.json \
+            .contract-ir-evidence/projection-receipt.json \
             .contract-ir-evidence/verification.json \
             .contract-ir-evidence/admission.tap \
             > .contract-ir-evidence/sha256.txt
