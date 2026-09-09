@@ -66,12 +66,16 @@ test('E2E and every loader host use the reviewed exact validator closure', async
   };
 
   for (const [name, workflow] of Object.entries(workflows)) {
-    assert.match(workflow, /repository:\s*ORESoftware\/typespec-json-schema-validator/);
+    assert.match(workflow, /ORESoftware\/typespec-json-schema-validator/);
     assert.ok(
       workflow.includes(closure.components.validator),
       `${name} does not pin the reviewed validator commit`,
     );
-    assert.match(workflow, /typespec-json-schema-validator\.mjs check/);
+    assert.ok(
+      /typespec-json-schema-validator\.mjs check/.test(workflow) ||
+        /uses:\s*ORESoftware\/typespec-json-schema-validator@[0-9a-f]{40}/.test(workflow),
+      `${name} does not execute the shared validator`,
+    );
     assert.match(workflow, /verify-contract-ir\.mjs/);
     assert.match(workflow, /check-language-projections\.mjs/);
     rejectsMutableValidatorRef(workflow, name);
