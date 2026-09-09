@@ -115,20 +115,7 @@ jobs:
           node --test --test-reporter=tap contract-ir/source-closure.test.mjs \
             | tee .contract-ir-evidence/source-closure.tap
 
-      - name: Emit parity receipt, Schema B, and Contract IR for the external consumer
-        shell: bash
-        run: |
-          set -euo pipefail
-          node subject/typespec-json-schema-validator/bin/typespec-json-schema-validator.mjs check \
-            --typespec=subject/owls-interfaces/contracts/main.tsp \
-            --schema=subject/owls-interfaces/schemas/release.schema.json \
-            --report=.contract-ir-evidence/report.json \
-            --contract-ir=.contract-ir-evidence/contract-ir.json \
-            --output-dir=.contract-ir-evidence/generated \
-            --max-probes=96 \
-            --quiet=true
-
-      - name: Independently reproduce and verify interface-owned admission
+      - name: Emit the first exact-path parity receipt, Schema B, and Contract IR
         shell: bash
         run: |
           set -euo pipefail
@@ -145,16 +132,44 @@ jobs:
               --output-dir=.typespec-json-schema-validator/generated \
               --max-probes=96 \
               --quiet=true
+          )
+          cp subject/owls-interfaces/.typespec-json-schema-validator/report.json \
+            .contract-ir-evidence/report.json
+          cp subject/owls-interfaces/.typespec-json-schema-validator/contract-ir.json \
+            .contract-ir-evidence/contract-ir.json
+          cp -R subject/owls-interfaces/.typespec-json-schema-validator/generated \
+            .contract-ir-evidence/generated
+
+      - name: Independently reproduce and verify interface-owned admission
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf subject/owls-interfaces/.typespec-json-schema-validator
+          (
+            cd subject/owls-interfaces
+            node .tools/typespec-json-schema-validator/bin/typespec-json-schema-validator.mjs check \
+              --typespec=contracts/main.tsp \
+              --schema=schemas/release.schema.json \
+              --report=.typespec-json-schema-validator/report.json \
+              --contract-ir=.typespec-json-schema-validator/contract-ir.json \
+              --output-dir=.typespec-json-schema-validator/generated \
+              --max-probes=96 \
+              --quiet=true
             node scripts/verify-contract-ir.mjs
             node scripts/check-language-projections.mjs
           )
           node --input-type=module <<'NODE'
           import { readFile } from 'node:fs/promises';
           const readJson = async (path) => JSON.parse(await readFile(path, 'utf8'));
-          const external = await readJson('.contract-ir-evidence/contract-ir.json');
-          const owned = await readJson('subject/owls-interfaces/.typespec-json-schema-validator/contract-ir.json');
-          if (external.irId !== owned.irId) {
-            throw new Error(`Contract IR reproduction drift: ${external.irId} != ${owned.irId}`);
+          const firstReport = await readJson('.contract-ir-evidence/report.json');
+          const firstIr = await readJson('.contract-ir-evidence/contract-ir.json');
+          const secondReport = await readJson('subject/owls-interfaces/.typespec-json-schema-validator/report.json');
+          const secondIr = await readJson('subject/owls-interfaces/.typespec-json-schema-validator/contract-ir.json');
+          if (firstReport.runId !== secondReport.runId) {
+            throw new Error(`Parity receipt reproduction drift: ${firstReport.runId} != ${secondReport.runId}`);
+          }
+          if (firstIr.irId !== secondIr.irId) {
+            throw new Error(`Contract IR reproduction drift: ${firstIr.irId} != ${secondIr.irId}`);
           }
           NODE
           cp subject/owls-interfaces/.typespec-json-schema-validator/projection-receipt.json \
