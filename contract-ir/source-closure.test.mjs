@@ -58,14 +58,26 @@ test('E2E and every loader host use the reviewed exact validator closure', async
     assert.equal(declaredRef(e2e, name), ref, `${name} drifted from source-closure.json`);
   }
 
-  const workflows = {
-    interfaces: await read('subject/owls-interfaces/.github/workflows/contract.yml'),
-    webLoader: await read('subject/owls-web-loader/.github/workflows/contract-ir-consumer.yml'),
-    nativeLoader: await read('subject/owls-runtime/.github/workflows/native-contract.yml'),
-    flutterLoader: await read('subject/owls-flutter/.github/workflows/flutter-package.yml'),
+  const hosts = {
+    interfaces: {
+      workflow: await read('subject/owls-interfaces/.github/workflows/contract.yml'),
+      verifier: /verify-contract-ir\.mjs/,
+    },
+    webLoader: {
+      workflow: await read('subject/owls-web-loader/.github/workflows/contract-ir-consumer.yml'),
+      verifier: /verify-contract-ir-consumer\.mjs/,
+    },
+    nativeLoader: {
+      workflow: await read('subject/owls-runtime/.github/workflows/native-contract.yml'),
+      verifier: /verify-contract-ir\.mjs/,
+    },
+    flutterLoader: {
+      workflow: await read('subject/owls-flutter/.github/workflows/flutter-package.yml'),
+      verifier: /verify-contract-ir\.mjs/,
+    },
   };
 
-  for (const [name, workflow] of Object.entries(workflows)) {
+  for (const [name, { workflow, verifier }] of Object.entries(hosts)) {
     assert.match(workflow, /ORESoftware\/typespec-json-schema-validator/);
     assert.ok(
       workflow.includes(closure.components.validator),
@@ -76,12 +88,12 @@ test('E2E and every loader host use the reviewed exact validator closure', async
         /uses:\s*ORESoftware\/typespec-json-schema-validator@[0-9a-f]{40}/.test(workflow),
       `${name} does not execute the shared validator`,
     );
-    assert.match(workflow, /verify-contract-ir\.mjs/);
+    assert.match(workflow, verifier, `${name} does not run its Contract IR verifier`);
     assert.match(workflow, /check-language-projections\.mjs/);
     rejectsMutableValidatorRef(workflow, name);
   }
 
-  assert.ok(workflows.interfaces.includes(closure.components.validator));
-  assert.ok(workflows.webLoader.includes(closure.components.interfaces));
-  assert.ok(workflows.nativeLoader.includes(closure.components.interfaces));
+  assert.ok(hosts.interfaces.workflow.includes(closure.components.validator));
+  assert.ok(hosts.webLoader.workflow.includes(closure.components.interfaces));
+  assert.ok(hosts.nativeLoader.workflow.includes(closure.components.interfaces));
 });
