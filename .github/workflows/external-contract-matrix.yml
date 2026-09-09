@@ -14,8 +14,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  OWLS_INTERFACES_REF: 76364a23364993ff4be1ed82a4978725ed6f811c
-  OWLS_WEB_LOADER_REF: a4b642f44f863d6d83d7dc183b4e56945126dfdf
+  OWLS_INTERFACES_REF: cfe0b18fe9ae361d94ea0646627cb732465b5496
+  OWLS_WEB_LOADER_REF: d9f7624c80b606e8be5479f9e2dea89ac9e35284
 
 jobs:
   node-corpus:
@@ -84,10 +84,10 @@ jobs:
           } > evidence/versions.txt
           sha256sum corpus/release-corpus.json corpus/expectation-overrides.v2.json > evidence/inputs.sha256
 
-      - name: Run all 54 evolved corpus cases and loader lifecycle checks
+      - name: Run historical corpus, loader lifecycle, and dependency-DAG checks
         run: |
           set -euo pipefail
-          node --test --test-reporter=tap node/current-api.test.mjs | tee evidence/node.tap
+          node --test --test-reporter=tap node/*.test.mjs | tee evidence/node.tap
 
       - name: Preserve external corpus evidence
         if: always()
