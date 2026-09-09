@@ -6,6 +6,7 @@ import { isAbsolute, resolve } from 'node:path';
 
 const rootUrl = new URL('../', import.meta.url);
 const rootPath = fileURLToPath(rootUrl);
+const interfacesRoot = resolve(rootPath, 'subject/owls-interfaces');
 const evidenceUrl = new URL('.contract-ir-evidence/', rootUrl);
 const validator = await import(
   new URL('subject/typespec-json-schema-validator/src/index.mjs', rootUrl).href,
@@ -14,14 +15,17 @@ const validator = await import(
 const readJson = async (relativeUrl) => JSON.parse(await readFile(new URL(relativeUrl, rootUrl), 'utf8'));
 const report = await readJson('.contract-ir-evidence/report.json');
 const contractIr = await readJson('.contract-ir-evidence/contract-ir.json');
-const typespec = fileURLToPath(new URL('subject/owls-interfaces/contracts/main.tsp', rootUrl));
-const authoredSchema = fileURLToPath(
-  new URL('subject/owls-interfaces/schemas/release.schema.json', rootUrl),
-);
+const typespec = resolve(interfacesRoot, 'contracts/main.tsp');
+const authoredSchema = resolve(interfacesRoot, 'schemas/release.schema.json');
+
+function resolveInterfaceEvidencePath(value) {
+  assert.equal(typeof value, 'string', 'receipt evidence path must be a string');
+  assert.notEqual(value, '', 'receipt evidence path must not be empty');
+  return isAbsolute(value) ? value : resolve(interfacesRoot, value);
+}
+
 const recordedGeneratedSchema = report?.inputs?.generatedJsonSchema?.input;
-const generatedSchema = isAbsolute(recordedGeneratedSchema)
-  ? recordedGeneratedSchema
-  : resolve(rootPath, recordedGeneratedSchema);
+const generatedSchema = resolveInterfaceEvidencePath(recordedGeneratedSchema);
 
 const verify = ({
   suppliedIr = contractIr,
