@@ -9,6 +9,9 @@ permissions:
 concurrency:
   group: marketing-manifest-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
+env:
+  OWLS_WEB_LOADER_REF: 28e52ec4b7b53a6556e5be2142993c584535b595
+  OWLS_INTERFACES_REF: 76364a23364993ff4be1ed82a4978725ed6f811c
 jobs:
   browser:
     runs-on: ubuntu-24.04
@@ -26,13 +29,13 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: ores-wasm-loaders/owls-web-loader
-          ref: d60920a4645d05a85e7fde1a2e965e7ad49806ff
+          ref: ${{ env.OWLS_WEB_LOADER_REF }}
           path: package-src/owls-web-loader
           persist-credentials: false
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: ores-wasm-loaders/owls-interfaces
-          ref: 231510f5d01046af657be42a5d4215be12622042
+          ref: ${{ env.OWLS_INTERFACES_REF }}
           path: package-src/owls-interfaces
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
@@ -49,8 +52,8 @@ jobs:
           set -euo pipefail
           mkdir -p evidence
           { git rev-parse HEAD; git -C package-src/owls-web-loader rev-parse HEAD; git -C package-src/owls-interfaces rev-parse HEAD; node --version; } > evidence/versions.txt
-          test "$(git -C package-src/owls-web-loader rev-parse HEAD)" = d60920a4645d05a85e7fde1a2e965e7ad49806ff
-          test "$(git -C package-src/owls-interfaces rev-parse HEAD)" = 231510f5d01046af657be42a5d4215be12622042
+          test "$(git -C package-src/owls-web-loader rev-parse HEAD)" = "$OWLS_WEB_LOADER_REF"
+          test "$(git -C package-src/owls-interfaces rev-parse HEAD)" = "$OWLS_INTERFACES_REF"
           tar -czf evidence/source.tar.gz pilot/real/marketing-manifest.browser.test.mjs pilot/real/package.json pilot/real/package-lock.json .github/workflows/marketing-manifest-ownership.yml package-src/owls-web-loader/src package-src/owls-interfaces/index.mjs package-src/owls-interfaces/release.mjs package-src/owls-interfaces/validate.mjs package-src/owls-interfaces/schemas
           sha256sum evidence/source.tar.gz > evidence/source.sha256
       - name: Certify real HTTPS manifest ownership
