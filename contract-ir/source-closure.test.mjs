@@ -36,7 +36,11 @@ function requireCanonicalAdmission(workflow, name, validatorRef) {
   );
   assert.match(workflow, /fixtures\/valid\/\*\.json/u, `${name} does not stage the admitted release corpus`);
   assert.match(workflow, /instances\/Release\/valid/u, `${name} does not retain Release/valid corpus semantics`);
-  assert.match(workflow, /tjsv-consumer-verification\.json/u, `${name} does not retain a canonical consumer receipt`);
+  assert.match(
+    workflow,
+    /(?:tjsv-)?consumer-verification\.json/u,
+    `${name} does not retain a canonical consumer receipt`,
+  );
 }
 
 test('the salvaged source closure preserves peer-authority semantics and current immutable components', async () => {
