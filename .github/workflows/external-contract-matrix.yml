@@ -14,8 +14,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  OWLS_INTERFACES_REF: cfe0b18fe9ae361d94ea0646627cb732465b5496
-  OWLS_WEB_LOADER_REF: d9f7624c80b606e8be5479f9e2dea89ac9e35284
+  OWLS_INTERFACES_REF: b452399f30fa77c179e56f1ed98ca20dd8ad372b
+  OWLS_WEB_LOADER_REF: 8498c8cbbe5e1ae75fd2e5ff5fa017aa9602ed8a
 
 jobs:
   node-corpus:
@@ -82,9 +82,9 @@ jobs:
             printf 'web_loader=%s\n' "$(git -C zed_modules/ores-wasm-loaders/owls-web-loader rev-parse HEAD)"
             printf 'node=%s\n' "$(node --version)"
           } > evidence/versions.txt
-          sha256sum corpus/release-corpus.json corpus/expectation-overrides.v2.json > evidence/inputs.sha256
+          sha256sum corpus/release-corpus.json corpus/expectation-overrides.v2.json .ores-wasm.toml config/release.json > evidence/inputs.sha256
 
-      - name: Run historical corpus, loader lifecycle, and dependency-DAG checks
+      - name: Run historical corpus, config boundary, loader lifecycle, and dependency-DAG checks
         run: |
           set -euo pipefail
           node --test --test-reporter=tap node/*.test.mjs | tee evidence/node.tap
