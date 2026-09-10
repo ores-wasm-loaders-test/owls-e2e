@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 2,
+  "appId": "external-config-consumer",
+  "release": "2026.09.09-config-e2e",
+  "runtime": "raw-wasm",
+  "framework": "none",
+  "entrypoint": "engine",
+  "assets": [
+    {
+      "id": "engine",
+      "url": "https://assets.example/engine.wasm",
+      "kind": "wasm",
+      "role": "module",
+      "stage": "critical",
+      "bytes": 8,
+      "sha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+      "prepare": true
+    }
+  ],
+  "prepareBudget": {
+    "maxBytes": 1024,
+    "maxConcurrency": 1,
+    "furthestStage": "fetch"
+  },
+  "activation": {
+    "mode": "run-app"
+  }
+}
