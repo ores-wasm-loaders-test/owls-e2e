@@ -10,10 +10,10 @@
     "contractIr": "derived-admission-evidence"
   },
   "components": {
-    "interfaces": "76364a23364993ff4be1ed82a4978725ed6f811c",
+    "interfaces": "cfe0b18fe9ae361d94ea0646627cb732465b5496",
     "validator": "03ccc0ecdfc70f9198c3ccf80718910961d3fde1",
-    "webLoader": "a4b642f44f863d6d83d7dc183b4e56945126dfdf",
-    "nativeLoader": "a4f996544aff9004988c8fa76fbadc2d8fede555",
-    "flutterLoader": "ea2ca9c274d386fc68e2cf72412d015b88df4774"
+    "webLoader": "d9f7624c80b606e8be5479f9e2dea89ac9e35284",
+    "nativeLoader": "1cbd6107b26e85420b924afa9cae1d401e223802",
+    "flutterLoader": "8f6bda35d8efb21b817295b01e4b0c58a59910cd"
   }
 }

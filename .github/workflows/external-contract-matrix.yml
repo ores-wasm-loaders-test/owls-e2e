@@ -14,8 +14,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  OWLS_INTERFACES_REF: 76364a23364993ff4be1ed82a4978725ed6f811c
-  OWLS_WEB_LOADER_REF: a4b642f44f863d6d83d7dc183b4e56945126dfdf
+  OWLS_INTERFACES_REF: b452399f30fa77c179e56f1ed98ca20dd8ad372b
+  OWLS_WEB_LOADER_REF: 8498c8cbbe5e1ae75fd2e5ff5fa017aa9602ed8a
 
 jobs:
   node-corpus:
@@ -82,12 +82,12 @@ jobs:
             printf 'web_loader=%s\n' "$(git -C zed_modules/ores-wasm-loaders/owls-web-loader rev-parse HEAD)"
             printf 'node=%s\n' "$(node --version)"
           } > evidence/versions.txt
-          sha256sum corpus/release-corpus.json corpus/expectation-overrides.v2.json > evidence/inputs.sha256
+          sha256sum corpus/release-corpus.json corpus/expectation-overrides.v2.json .ores-wasm.toml config/release.json > evidence/inputs.sha256
 
-      - name: Run all 54 evolved corpus cases and loader lifecycle checks
+      - name: Run historical corpus, config boundary, loader lifecycle, and dependency-DAG checks
         run: |
           set -euo pipefail
-          node --test --test-reporter=tap node/current-api.test.mjs | tee evidence/node.tap
+          node --test --test-reporter=tap node/*.test.mjs | tee evidence/node.tap
 
       - name: Preserve external corpus evidence
         if: always()

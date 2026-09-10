@@ -10,8 +10,8 @@ concurrency:
   group: real-pilot-v2-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 env:
-  OWLS_WEB_LOADER_REF: a4b642f44f863d6d83d7dc183b4e56945126dfdf
-  OWLS_INTERFACES_REF: 76364a23364993ff4be1ed82a4978725ed6f811c
+  OWLS_WEB_LOADER_REF: d9f7624c80b606e8be5479f9e2dea89ac9e35284
+  OWLS_INTERFACES_REF: cfe0b18fe9ae361d94ea0646627cb732465b5496
 jobs:
   packages:
     runs-on: ubuntu-24.04
@@ -194,6 +194,7 @@ jobs:
           assert.equal(typeof contract.parseRelease, 'function');
           assert.equal(typeof loader.Coordinator, 'function');
           assert.equal(typeof loader.ActivationHost, 'function');
+          assert.equal(typeof loader.prefetchRoute, 'function');
           console.log('PASS: isolated npm consumer resolves named runtime package imports');
           NODE
           )

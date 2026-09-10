@@ -1,0 +1,31 @@
+version = 1
+enabled = true
+strict = true
+
+[hosts.external]
+kind = "browser"
+root = "."
+releaseManifest = "config/release.json"
+allowedOrigins = ["https://assets.example"]
+
+[hosts.external.prepare]
+trigger = "intent"
+maxBytes = 1024
+maxConcurrency = 1
+furthestStage = "fetch"
+
+[hosts.external.activation]
+policy = "explicit"
+
+[env.prepareBytes]
+env = "ORES_WASM_E2E_PREPARE_BYTES"
+type = "integer"
+target = "hosts.external.prepare.maxBytes"
+
+[env.metadata]
+env = "ORES_WASM_E2E_METADATA"
+type = "json"
+target = "extensions.externalMetadata"
+
+[extensions]
+consumer = "ores-wasm-loaders-test/owls-e2e"
