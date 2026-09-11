@@ -1,0 +1,207 @@
+name: Exact WASM and workerd context boundary
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/async-context-wasm-workerd.yml"
+      - "context/async-context-source.json"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/async-context-wasm-workerd.yml"
+      - "context/async-context-source.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: exact-wasm-workerd-context-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SOURCE_REPOSITORY: ores-otel/ores.otel.log
+  SOURCE_SHA: 0109ec4972864d666174f759d87239c8385ba496
+  SOURCE_PATH: zed_modules/ores-otel-log
+
+jobs:
+  provenance:
+    name: Verify test head and immutable source
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact OWLS test head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: harness
+          persist-credentials: false
+      - name: Verify exact test head
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git -C harness rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Validate the external source lock
+        working-directory: harness
+        run: |
+          python3 - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          lock = json.loads(Path("context/async-context-source.json").read_text())
+          assert lock["schema"] == "ores-wasm-loaders-test/explicit-context-certification/v1"
+          assert lock["repository"] == "ores-otel/ores.otel.log"
+          assert lock["sha"] == "0109ec4972864d666174f759d87239c8385ba496"
+          assert re.fullmatch(r"[0-9a-f]{40}", lock["sha"])
+          assert set(lock["hostRuntimes"]) == {
+              "wasm32-unknown-unknown",
+              "cloudflare-workerd",
+          }
+          assert "explicitly by the host" in lock["requiredBoundary"]
+          PY
+      - name: Check out exact production source beneath zed_modules
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ env.SOURCE_REPOSITORY }}
+          ref: ${{ env.SOURCE_SHA }}
+          path: ${{ env.SOURCE_PATH }}
+          persist-credentials: false
+      - name: Verify source identity and cleanliness
+        run: |
+          test "$(git -C "$SOURCE_PATH" rev-parse HEAD)" = "$SOURCE_SHA"
+          test -z "$(git -C "$SOURCE_PATH" status --porcelain)"
+      - name: Enforce explicit-context architecture
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("zed_modules/ores-otel-log")
+          wasm = (root / "sdk/wasm/src/lib.rs").read_text()
+          workerd = (root / "src/context-workerd.ts").read_text()
+          execution = (root / "src/execution-context-workerd.ts").read_text()
+          package = json.loads((root / "package.json").read_text())
+
+          assert "context is passed" in wasm and "explicitly by the host" in wasm
+          for forbidden in ("thread_local!", "tokio::task_local!", "AsyncLocalStorage"):
+              assert forbidden not in wasm, forbidden
+          assert "node:async_hooks" not in workerd
+          assert "node:async_hooks" not in execution
+          context_export = package["exports"]["./context"]["workerd"]
+          assert context_export["default"] == "./dist/context-workerd.js"
+          assert context_export["types"] == "./dist/context-workerd.d.ts"
+          PY
+
+  wasm:
+    name: WASM explicit host context
+    needs: provenance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact production source beneath zed_modules
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ env.SOURCE_REPOSITORY }}
+          ref: ${{ env.SOURCE_SHA }}
+          path: ${{ env.SOURCE_PATH }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30
+        with:
+          toolchain: "1.88.0"
+          components: rustfmt
+          targets: wasm32-unknown-unknown
+      - name: Run native conformance and compile the host adapter
+        run: |
+          set -euo pipefail
+          cargo fmt --manifest-path "$SOURCE_PATH/sdk/wasm/Cargo.toml" -- --check
+          cargo test --manifest-path "$SOURCE_PATH/sdk/wasm/Cargo.toml" --locked --all-targets
+          cargo build \
+            --manifest-path "$SOURCE_PATH/sdk/wasm/Cargo.toml" \
+            --target wasm32-unknown-unknown \
+            --locked
+
+  workerd:
+    name: Bare workerd without nodejs_als
+    needs: provenance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact production source beneath zed_modules
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ env.SOURCE_REPOSITORY }}
+          ref: ${{ env.SOURCE_SHA }}
+          path: ${{ env.SOURCE_PATH }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22.20.0"
+          cache: npm
+          cache-dependency-path: zed_modules/ores-otel-log/package-lock.json
+      - name: Build exact package source
+        working-directory: zed_modules/ores-otel-log
+        run: |
+          npm ci
+          npm run build
+          npm install --no-save --ignore-scripts wrangler@3.114.14
+      - name: Exercise the bare workerd context fallback
+        working-directory: zed_modules/ores-otel-log
+        shell: bash
+        run: |
+          set -euo pipefail
+          log="$RUNNER_TEMP/workerd.log"
+          npx wrangler dev --config wrangler.conformance.toml --local --port 8787 >"$log" 2>&1 &
+          worker_pid=$!
+          cleanup() {
+            kill "$worker_pid" 2>/dev/null || true
+            wait "$worker_pid" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+          ready=false
+          for _ in $(seq 1 60); do
+            if curl --fail --silent --output /dev/null http://127.0.0.1:8787/; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+          if [[ "$ready" != true ]]; then
+            cat "$log" >&2
+            exit 1
+          fi
+          for request in first second concurrent-a concurrent-b; do
+            body=$(curl --silent --show-error --write-out '\n%{http_code}' \
+              -H "x-request-id: $request" \
+              http://127.0.0.1:8787/)
+            status=$(printf '%s\n' "$body" | tail -n1)
+            payload=$(printf '%s\n' "$body" | sed '$d')
+            printf '%s\n' "$payload"
+            [[ "$status" == 200 ]]
+            grep -Fq 'async context single-frame' <<<"$payload"
+            grep -Fq 'checks passed' <<<"$payload"
+          done
+
+  result:
+    name: Require both host-boundary certificates
+    if: always()
+    needs: [provenance, wasm, workerd]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Fail closed on skipped, cancelled, or failed evidence
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+
+          results = json.loads(os.environ["RESULTS"])
+          failed = {
+              name: data["result"]
+              for name, data in results.items()
+              if data["result"] != "success"
+          }
+          if failed:
+              raise SystemExit(f"explicit-context certification incomplete: {failed}")
+          print("independent WASM/workerd explicit-context certificate complete")
+          PY
