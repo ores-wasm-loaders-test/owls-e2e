@@ -1,0 +1,374 @@
+[
+  {
+    "name": "valid",
+    "valid": true,
+    "manifest": {
+      "schemaVersion": 1,
+      "appId": "demo",
+      "release": "r1",
+      "runtime": "raw-wasm",
+      "entrypoint": "main",
+      "assets": [
+        {
+          "id": "main",
+          "url": "https://assets.example/main.wasm",
+          "kind": "wasm",
+          "bytes": 8,
+          "sha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+          "prepare": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "unknown-top-level",
+    "valid": false,
+    "manifest": {
+      "schemaVersion": 1,
+      "appId": "demo",
+      "release": "r1",
+      "runtime": "raw-wasm",
+      "entrypoint": "main",
+      "assets": [
+        {
+          "id": "main",
+          "url": "https://assets.example/main.wasm",
+          "kind": "wasm",
+          "bytes": 8,
+          "sha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+          "prepare": true
+        }
+      ],
+      "extra": true
+    }
+  },
+  {
+    "name": "duplicate-asset",
+    "valid": false,
+    "manifest": {
+      "schemaVersion": 1,
+      "appId": "demo",
+      "release": "r1",
+      "runtime": "raw-wasm",
+      "entrypoint": "main",
+      "assets": [
+        {
+          "id": "main",
+          "url": "https://assets.example/main.wasm",
+          "kind": "wasm",
+          "bytes": 8,
+          "sha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+          "prepare": true
+        },
+        {
+          "id": "main",
+          "url": "https://assets.example/main.wasm",
+          "kind": "wasm",
+          "bytes": 8,
+          "sha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+          "prepare": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "wrong-origin",
+    "valid": false,
+    "manifest": {
+      "schemaVersion": 1,
+      "appId": "demo",
+      "release": "r1",
+      "runtime": "raw-wasm",
+      "entrypoint": "main",
+      "assets": [
+        {
+          "id": "main",
+          "url": "https://evil.example/main.wasm",
+          "kind": "wasm",
+          "bytes": 8,
+          "sha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+          "prepare": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "query",
+    "valid": false,
+    "manifest": {
+      "schemaVersion": 1,
+      "appId": "demo",
+      "release": "r1",
+      "runtime": "raw-wasm",
+      "entrypoint": "main",
+      "assets": [
+        {
+          "id": "main",
+          "url": "https://assets.example/main.wasm?x=1",
+          "kind": "wasm",
+          "bytes": 8,
+          "sha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+          "prepare": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "userinfo",
+    "valid": false,
+    "manifest": {
+      "schemaVersion": 1,
+      "appId": "demo",
+      "release": "r1",
+      "runtime": "raw-wasm",
+      "entrypoint": "main",
+      "assets": [
+        {
+          "id": "main",
+          "url": "https://user@assets.example/main.wasm",
+          "kind": "wasm",
+          "bytes": 8,
+          "sha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+          "prepare": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "zero-bytes",
+    "valid": false,
+    "manifest": {
+      "schemaVersion": 1,
+      "appId": "demo",
+      "release": "r1",
+      "runtime": "raw-wasm",
+      "entrypoint": "main",
+      "assets": [
+        {
+          "id": "main",
+          "url": "https://assets.example/main.wasm",
+          "kind": "wasm",
+          "bytes": 0,
+          "sha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+          "prepare": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "fractional-bytes",
+    "valid": false,
+    "manifest": {
+      "schemaVersion": 1,
+      "appId": "demo",
+      "release": "r1",
+      "runtime": "raw-wasm",
+      "entrypoint": "main",
+      "assets": [
+        {
+          "id": "main",
+          "url": "https://assets.example/main.wasm",
+          "kind": "wasm",
+          "bytes": 1.5,
+          "sha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+          "prepare": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "oversized",
+    "valid": false,
+    "manifest": {
+      "schemaVersion": 1,
+      "appId": "demo",
+      "release": "r1",
+      "runtime": "raw-wasm",
+      "entrypoint": "main",
+      "assets": [
+        {
+          "id": "main",
+          "url": "https://assets.example/main.wasm",
+          "kind": "wasm",
+          "bytes": 268435457,
+          "sha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+          "prepare": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "wrong-hash",
+    "valid": false,
+    "manifest": {
+      "schemaVersion": 1,
+      "appId": "demo",
+      "release": "r1",
+      "runtime": "raw-wasm",
+      "entrypoint": "main",
+      "assets": [
+        {
+          "id": "main",
+          "url": "https://assets.example/main.wasm",
+          "kind": "wasm",
+          "bytes": 8,
+          "sha256": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
+          "prepare": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "missing-entry",
+    "valid": false,
+    "manifest": {
+      "schemaVersion": 1,
+      "appId": "demo",
+      "release": "r1",
+      "runtime": "raw-wasm",
+      "entrypoint": "none",
+      "assets": [
+        {
+          "id": "main",
+          "url": "https://assets.example/main.wasm",
+          "kind": "wasm",
+          "bytes": 8,
+          "sha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+          "prepare": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "wrong-runtime-entry-kind",
+    "valid": false,
+    "manifest": {
+      "schemaVersion": 1,
+      "appId": "demo",
+      "release": "r1",
+      "runtime": "flutter-web",
+      "entrypoint": "main",
+      "assets": [
+        {
+          "id": "main",
+          "url": "https://assets.example/main.wasm",
+          "kind": "wasm",
+          "bytes": 8,
+          "sha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+          "prepare": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "extra-asset-field",
+    "valid": false,
+    "manifest": {
+      "schemaVersion": 1,
+      "appId": "demo",
+      "release": "r1",
+      "runtime": "raw-wasm",
+      "entrypoint": "main",
+      "assets": [
+        {
+          "id": "main",
+          "url": "https://assets.example/main.wasm",
+          "kind": "wasm",
+          "bytes": 8,
+          "sha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+          "prepare": true,
+          "private": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "unknown-runtime",
+    "valid": false,
+    "manifest": {
+      "schemaVersion": 1,
+      "appId": "demo",
+      "release": "r1",
+      "runtime": "universal",
+      "entrypoint": "main",
+      "assets": [
+        {
+          "id": "main",
+          "url": "https://assets.example/main.wasm",
+          "kind": "wasm",
+          "bytes": 8,
+          "sha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+          "prepare": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "uppercase-host",
+    "valid": false,
+    "manifest": {
+      "schemaVersion": 1,
+      "appId": "demo",
+      "release": "r1",
+      "runtime": "raw-wasm",
+      "entrypoint": "main",
+      "assets": [
+        {
+          "id": "main",
+          "url": "https://ASSETS.example/main.wasm",
+          "kind": "wasm",
+          "bytes": 8,
+          "sha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+          "prepare": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "asset-number-as-string",
+    "valid": false,
+    "manifest": {
+      "schemaVersion": 1,
+      "appId": "demo",
+      "release": "r1",
+      "runtime": "raw-wasm",
+      "entrypoint": "main",
+      "assets": [
+        {
+          "id": "main",
+          "url": "https://assets.example/main.wasm",
+          "kind": "wasm",
+          "bytes": "8",
+          "sha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+          "prepare": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "integer-valued numbers and extensions",
+    "valid": true,
+    "manifest": {
+      "schemaVersion": 1.0,
+      "appId": "demo",
+      "release": "r1",
+      "runtime": "raw-wasm",
+      "entrypoint": "main",
+      "assets": [
+        {
+          "id": "main",
+          "url": "https://assets.example/main.wasm",
+          "kind": "wasm",
+          "bytes": 8.0,
+          "sha256": "93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+          "prepare": true
+        }
+      ],
+      "extensions": {
+        "tenant": {
+          "mode": "fast"
+        }
+      }
+    }
+  }
+]
