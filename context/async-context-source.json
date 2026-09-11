@@ -1,0 +1,17 @@
+{
+  "schema": "ores-wasm-loaders-test/explicit-context-certification/v1",
+  "repository": "ores-otel/ores.otel.log",
+  "sha": "0109ec4972864d666174f759d87239c8385ba496",
+  "sourceSubtrees": [
+    "sdk/wasm",
+    "tests/conformance/worker-entry.mjs",
+    "src/context-workerd.ts",
+    "src/execution-context-workerd.ts"
+  ],
+  "hostRuntimes": [
+    "wasm32-unknown-unknown",
+    "cloudflare-workerd"
+  ],
+  "requiredBoundary": "Context is supplied explicitly by the host and is never retained in mutable process-global, thread-local, or task-local state.",
+  "purpose": "Independent second-test-organization evidence for explicit context at WASM and workerd host boundaries"
+}
