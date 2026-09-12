@@ -1,0 +1,70 @@
+name: repository-governance
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  F2E_REF: 333c2ace93c362d274171ab0e0edf613d96a8e59
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          show-progress: false
+
+      - name: Check out exact canonical flags-2-env source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: flags-2-env/flags-2-env
+          ref: ${{ env.F2E_REF }}
+          path: .tools/flags-2-env
+          persist-credentials: false
+          show-progress: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.23.1
+          package-manager-cache: false
+
+      - name: Audit canonical CLI contract with flags-2-env
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${#F2E_REF}" -eq 40
+          case "$F2E_REF" in *[!0-9a-f]*) exit 1 ;; esac
+          test "$(git -C .tools/flags-2-env rev-parse HEAD)" = "$F2E_REF"
+          npm ci --prefix .tools/flags-2-env --no-audit --no-fund
+          node .tools/flags-2-env/clients/nodejs/cli.mjs audit .cli-flags.toml
+          node .tools/flags-2-env/clients/nodejs/cli.mjs env-manifest check . \
+            --manifest manifest.env \
+            --cli .cli-flags.toml \
+            --sops-all \
+            --dec-all
+
+      - name: Enforce TypeSpec and JSON Schema peer-authority workflow policy
+        run: node --test --test-reporter=spec contract-ir/workflow-policy.test.mjs
+
+      - name: Reject repository hygiene and generated-authority drift
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -s .cli-flags.toml
+          test -s manifest.env
+          test -f .github/workflows/contract-ir-admission.yml
+          if git ls-files | grep -Eq '(^|/)(typespec\.generated\.schema\.json|schema-b\.json)$'; then
+            echo 'generated comparison Schema B must not be committed as an authored authority' >&2
+            exit 1
+          fi
