@@ -1,0 +1,24 @@
+# Repository-level CLI/env contract for the external OWLS acceptance harness.
+# This is governance tooling, not an application runtime CLI. No ambient runtime
+# environment variables are invented by the test repository.
+
+[help]
+url = "https://github.com/ores-wasm-loaders-test/owls-e2e"
+columns = ["options", "env", "type", "default", "description"]
+
+[env]
+files = []
+
+[parse]
+command_env = "OWLS_E2E_GOVERNANCE_COMMAND"
+unknown_options_env = "OWLS_E2E_UNKNOWN_OPTIONS"
+errors_env = "OWLS_E2E_PARSE_ERRORS"
+allow_unknown = false
+
+[commands.contract-admission]
+help = "Validate peer-authority, package, TOML, and external-consumer admission evidence."
+env = "OWLS_E2E_CONTRACT_ADMISSION"
+
+# BEGIN flags2env env-manifest v1
+# schema=ores.env-manifest.v1 sha256=fdab1ef9d104d75ff7a406ddc5487a6595779b7ec0674b925f336cbac14afae7
+# END flags2env env-manifest v1
