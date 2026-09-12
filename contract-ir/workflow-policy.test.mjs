@@ -54,3 +54,52 @@ test('external admission uses one exact TJSV revision and complete peer-authorit
   assert.doesNotMatch(workflow, /typespec-json-schema-validator(?:\/actions\/verify-contract-ir)?@(?:main|master|v\d+)/);
   assert.doesNotMatch(workflow, /ref:\s*(?:main|master)\s*$/m);
 });
+
+test('TypeSpec and authored Draft 2020-12 JSON Schema stay first-class peers and Schema B stays generated evidence', async () => {
+  const workflow = await readFile(workflowUrl, 'utf8');
+
+  const authoredTypeSpec = 'subject/owls-interfaces/contracts/main.tsp';
+  const authoredSchemaA = 'subject/owls-interfaces/schemas/release.schema.json';
+  const generatedSchemaB = '.contract-ir-evidence/generated/typespec.generated.schema.json';
+
+  assert.match(
+    workflow,
+    /--typespec=subject\/owls-interfaces\/contracts\/main\.tsp/,
+    'TJSV must receive the authored TypeSpec authority directly',
+  );
+  assert.match(
+    workflow,
+    /--schema=subject\/owls-interfaces\/schemas\/release\.schema\.json/,
+    'TJSV must receive the independently authored JSON Schema A directly',
+  );
+  assert.match(
+    workflow,
+    /--output-dir=\.contract-ir-evidence\/generated/,
+    'TypeSpec emission must land in a generated evidence directory',
+  );
+  assert.ok(
+    workflow.includes(`generated_schema: ${generatedSchemaB}`),
+    'canonical verification must bind generated comparison Schema B',
+  );
+  assert.ok(workflow.includes(`typespec: ${authoredTypeSpec}`));
+  assert.ok(workflow.includes(`schema: ${authoredSchemaA}`));
+  assert.match(workflow, /--report=\.contract-ir-evidence\/report\.json/);
+  assert.match(workflow, /--contract-ir=\.contract-ir-evidence\/contract-ir\.json/);
+  assert.match(workflow, /--instances=\.contract-ir-evidence\/instances/);
+
+  const sourceArchiveBlock = workflow.match(/tar -czf \.contract-ir-evidence\/source\.tar\.gz([\s\S]*?)sha256sum \.contract-ir-evidence\/source\.tar\.gz/)?.[1] ?? '';
+  assert.ok(sourceArchiveBlock.includes(authoredTypeSpec), 'evidence archive must retain the authored TypeSpec input');
+  assert.ok(sourceArchiveBlock.includes(authoredSchemaA), 'evidence archive must retain the authored JSON Schema A input');
+  assert.ok(
+    !sourceArchiveBlock.includes(generatedSchemaB),
+    'generated Schema B is reproducible comparison evidence, not an authored source authority',
+  );
+
+  assert.notEqual(authoredTypeSpec, authoredSchemaA);
+  assert.notEqual(authoredSchemaA, generatedSchemaB);
+  assert.doesNotMatch(
+    workflow,
+    /--schema=\.contract-ir-evidence\/generated\/typespec\.generated\.schema\.json/,
+    'generated Schema B must never replace authored JSON Schema A as the schema authority input',
+  );
+});
