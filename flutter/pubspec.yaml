@@ -1,0 +1,17 @@
+name: owls_external_flutter_consumer
+version: 0.1.0
+publish_to: none
+environment:
+  sdk: '>=3.6.0 <4.0.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  owls_flutter:
+    path: ../zed_modules/ores-wasm-loaders/owls-flutter
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+dependency_overrides:
+  owls_interfaces:
+    path: ../zed_modules/ores-wasm-loaders/owls-interfaces/dart
+

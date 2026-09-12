@@ -1,0 +1,15 @@
+.ores/
+.zed/
+.zed-pack/
+.registry/
+zed_modules/
+node_modules/
+target/
+**/.dart_tool/
+**/build/
+**/.flutter-plugins-dependencies
+fixtures/bindgen/pkg/
+reports/
+.env
+.env.*
+

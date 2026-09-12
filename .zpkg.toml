@@ -1,0 +1,20 @@
+[package]
+org = "ores-wasm-loaders-test"
+name = "owls-e2e"
+version = "0.1.0"
+description = "External consumers of published shared WASM loaders"
+license = "MIT"
+[package.repository]
+vcs = "git"
+url = "https://github.com/ores-wasm-loaders-test/owls-e2e"
+[dependencies]
+"ores-wasm-loaders/owls-interfaces" = "=0.1.1"
+"ores-wasm-loaders/owls-web-loader" = "=0.1.1"
+"ores-wasm-loaders/owls-flutter" = "=0.1.1"
+"ores-wasm-loaders/owls-runtime" = "=0.1.1"
+[targets.repository]
+dir = "."
+[install]
+adapter = "none"
+[publish]
+exclude = [".ores/**", ".zed/**", ".registry/**", "zed_modules/**", "node_modules/**", "target/**", "**/.dart_tool/**", "**/build/**", "fixtures/bindgen/pkg/**", "reports/**"]
