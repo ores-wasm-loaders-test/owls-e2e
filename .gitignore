@@ -18,3 +18,8 @@ tmp
 temp
 tmp/worktrees
 temp/worktrees
+# Installed packages — restored by `zed install --frozen --install-mode copy`
+# Ecosystem caches
+.dart_tool/
+build/
+# Local scratch
