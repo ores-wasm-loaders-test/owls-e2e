@@ -1,0 +1,62 @@
+name: split-wasm-mpa
+
+on:
+  pull_request:
+    paths:
+      - 'split-wasm/**'
+      - '.github/workflows/split-wasm-mpa.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'split-wasm/**'
+      - '.github/workflows/split-wasm-mpa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  OWLS_WEB_LOADER_REF: 3605f10e016c51d402146c0da2ae8b503d473401
+  OWLS_INTERFACES_REF: fcab55b9648dcad72845a5bdf8c2fa759f82fa77
+
+jobs:
+  external-consumer:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Check out exact merged OWLS loader
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: ores-wasm-loaders/owls-web-loader
+          ref: ${{ env.OWLS_WEB_LOADER_REF }}
+          path: _upstream/owls-web-loader
+          persist-credentials: false
+
+      - name: Check out exact interface authority
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: ores-wasm-loaders/owls-interfaces
+          ref: ${{ env.OWLS_INTERFACES_REF }}
+          path: _upstream/owls-interfaces
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+
+      - name: Verify immutable upstream revisions
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C _upstream/owls-web-loader rev-parse HEAD)" = "$OWLS_WEB_LOADER_REF"
+          test "$(git -C _upstream/owls-interfaces rev-parse HEAD)" = "$OWLS_INTERFACES_REF"
+
+      - name: Prove vendor Wasm reuse across independent MPA coordinators
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test --test-reporter=tap split-wasm/mpa-cache.test.mjs
