@@ -1,0 +1,45 @@
+version = 1
+
+[[package]]
+org = "ores-wasm-loaders"
+name = "owls-flutter"
+version = "0.1.1"
+sha256 = "e5e6d92d0ecf90a70caf72d746fd4a31388c2915bbc32d91e710d003cba8aea6"
+size = 10365
+format = "tar.gz"
+vcs_tag = "v0.1.1"
+vcs_commit = "6e531f64e6dd024290700b1cca5894a42be9fc56"
+source = "file:///tmp/ores-wasm-registry"
+
+[[package]]
+org = "ores-wasm-loaders"
+name = "owls-interfaces"
+version = "0.1.1"
+sha256 = "fea1f81d31f220bc2c4bdb548546b52e4d7c929e12b64b590143fe75b184ae75"
+size = 5659
+format = "tar.gz"
+vcs_tag = "v0.1.1"
+vcs_commit = "291406191b55606e34b7980b42112e9c77ab690b"
+source = "file:///tmp/ores-wasm-registry"
+
+[[package]]
+org = "ores-wasm-loaders"
+name = "owls-runtime"
+version = "0.1.1"
+sha256 = "a8f9716267a57f9a2c51cf0ee544bf53f5a050ca41cac140327467fade2a47bc"
+size = 21725
+format = "tar.gz"
+vcs_tag = "v0.1.1"
+vcs_commit = "d19e3c9f32fd4e66016fdb76d0b4014ca096a253"
+source = "file:///tmp/ores-wasm-registry"
+
+[[package]]
+org = "ores-wasm-loaders"
+name = "owls-web-loader"
+version = "0.1.1"
+sha256 = "2d8388c605fa3c45569fb6b3950ef432bdb72b7c24cb954053c594d10df36006"
+size = 34490
+format = "tar.gz"
+vcs_tag = "v0.1.1"
+vcs_commit = "1dd98c871e48213caaaf4ef9ae15da6c3dcc7860"
+source = "file:///tmp/ores-wasm-registry"
